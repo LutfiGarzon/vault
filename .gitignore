@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.env.vault
+shared.vault
+test*.js
+test*.swift
