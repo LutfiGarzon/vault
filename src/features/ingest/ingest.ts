@@ -62,5 +62,5 @@ export async function ingestCommand(filepath: string) {
   }
 
   fs.unlinkSync(ingestPath);
-  p.outro(Flexoki.green(`[SUCCESS] Transport file ${filepath} successfully ingested and permanently destroyed.`));
+  p.outro(Flexoki.green(`✔ Transport file ${filepath} successfully ingested and permanently destroyed.`));
 }

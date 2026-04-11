@@ -11,7 +11,7 @@ export function execWithEnv(envVars: Record<string, string>, commandArgs: string
   if (commandArgs.length === 0) {
     const shell = process.env.SHELL || '/bin/sh';
     log.vault(`Spawning subshell (${shell}) with decrypted secrets injected.`);
-    console.log(Flexoki.tx2(`Type 'exit' to cleanly terminate the session and clear secrets from memory.\n`));
+    console.log(Flexoki.tx2(`! Type 'exit' to cleanly terminate the session and clear secrets from memory.\n`));
 
     const child = spawn(shell, [], {
       stdio: 'inherit',

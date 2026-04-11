@@ -70,6 +70,6 @@ export async function bioCommand() {
   saveGlobalIdentity(identity);
   sodium.memzero(gmk);
 
-  p.outro(Flexoki.green('[SUCCESS] Biometric authentication enabled.'));
+  p.outro(Flexoki.green(`✔ Biometric authentication enabled.`));
   log.vault("You can now use Touch ID to unlock your vaults.");
 }
