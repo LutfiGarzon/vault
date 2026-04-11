@@ -21,9 +21,9 @@ export const Flexoki = {
 };
 
 export const log = {
-  success: (msg: string) => console.log(Flexoki.green(`✅ ${msg}`)),
-  error: (msg: string) => console.error(Flexoki.red(`❌ ${msg}`)),
-  info: (msg: string) => console.log(Flexoki.blue(`ℹ️ ${msg}`)),
-  warn: (msg: string) => console.log(Flexoki.yellow(`⚠️ ${msg}`)),
-  vault: (msg: string) => console.log(Flexoki.purple(`🔒 ${msg}`)),
+  success: (msg: string) => console.log(`${Flexoki.green('[SUCCESS]')} ${Flexoki.tx(msg)}`),
+  error: (msg: string) => console.error(`${Flexoki.red('[ERROR]')} ${Flexoki.tx(msg)}`),
+  info: (msg: string) => console.log(`${Flexoki.blue('[INFO]')} ${Flexoki.tx(msg)}`),
+  warn: (msg: string) => console.log(`${Flexoki.yellow('[WARN]')} ${Flexoki.tx(msg)}`),
+  vault: (msg: string) => console.log(`${Flexoki.purple('[VAULT]')} ${Flexoki.tx(msg)}`),
 };

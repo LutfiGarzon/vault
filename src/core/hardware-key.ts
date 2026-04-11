@@ -14,7 +14,6 @@ export async function storeHardwareKey(serviceName: string, accountName: string,
   const swiftScript = `
 import Foundation
 import Security
-import LocalAuthentication
 
 let service = "${serviceName}"
 let account = "${accountName}"
@@ -22,11 +21,11 @@ let keyData = "${keyData}".data(using: .utf8)!
 
 guard let accessControl = SecAccessControlCreateWithFlags(
     nil,
-    kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
-    .touchIDAny,
+    kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+    .biometryAny,
     nil
 ) else {
-    print("ERROR: Could not create access control")
+    print("ERROR: Could not create access control object")
     exit(1)
 }
 
@@ -52,7 +51,8 @@ if status == errSecSuccess {
     print("SUCCESS")
     exit(0)
 } else {
-    print("ERROR: \\(status)")
+    let message = SecCopyErrorMessageString(status, nil) as String? ?? "Unknown error"
+    print("ERROR: \\(status) - \\(message)")
     exit(1)
 }
 `;
@@ -87,7 +87,7 @@ let query: [String: Any] = [
     kSecAttrAccount as String: account,
     kSecReturnData as String: true,
     kSecMatchLimit as String: kSecMatchLimitOne,
-    kSecUseOperationPrompt as String: "Authenticate to unlock Vault"
+    kSecUseOperationPrompt as String: "Unlock your Vault Global Identity"
 ]
 
 var dataTypeRef: AnyObject?
@@ -97,7 +97,7 @@ if status == errSecSuccess, let data = dataTypeRef as? Data, let key = String(da
     print(key)
     exit(0)
 } else {
-    exit(1)
+    exit(status == errSecUserCanceled ? 2 : 1)
 }
 `;
   const scriptPath = path.join(os.tmpdir(), `vault-retrieve-key-${Date.now()}.swift`);
