@@ -1,0 +1,63 @@
+.TH VAULT 1 "April 2026" "1.0.0" "Vault CLI Manual"
+.SH NAME
+vault \- local secure storage and environment variable injector
+.SH SYNOPSIS
+.B vault
+[\fIoptions\fR] [\fIcommand\fR] [\fIarguments\fR...]
+.br
+.B vault init
+[\-f \fIfile\fR]
+.br
+.B vault add
+\fIkey\fR
+.br
+.B vault share
+.br
+.B vault ingest
+\fIfile\fR
+.SH DESCRIPTION
+\fBvault\fR is a local, open-source CLI tool designed to eliminate plain-text .env files. 
+It utilizes \fBlibsodium\fR for hardware-backed (macOS Keychain) envelope encryption. 
+Secrets are decrypted in-memory and injected exclusively into temporary child processes.
+.SH COMMANDS
+.TP
+.B init [\-f \fIfile\fR]
+Initialize a new project vault (.env.vault). If no global identity exists on the machine, it triggers the first-time setup (Master Password, Recovery Key, and Touch ID hardware key).
+.TP
+.B add \fIkey\fR (alias: \-a)
+Interactively add or update a secret key in the local vault. Values are entered via a hidden prompt to prevent shoulder-surfing and shell history leaks.
+.TP
+.B share
+Export current project secrets to a transport-ready file (\fIshared.vault\fR) encrypted with a One-Time Password (OTP).
+.TP
+.B ingest \fIfile\fR
+Decrypt a transport file using an OTP and merge it into the local project vault. The transport file is automatically deleted after a successful ingest.
+.TP
+.B [command...]
+Execute the specified command with decrypted environment variables injected into the process. If no command is provided, it spawns a temporary subshell ($SHELL).
+.SH OPTIONS
+.TP
+.B \-V, \-\-version
+Output the version number.
+.TP
+.B \-h, \-\-help
+Display help information.
+.SH ENVIRONMENT
+.TP
+.B VAULT_MASTER_PASSWORD
+If set, the CLI will use this value instead of prompting for the Master Password.
+.SH EXAMPLES
+.TP
+Initialize a vault from an existing .env file:
+.B vault init -f .env
+.TP
+Add a new secret:
+.B vault add API_KEY
+.TP
+Run a Node.js app with secrets:
+.B vault node app.js
+.TP
+Open a secure subshell:
+.B vault
+.SH AUTHOR
+Lutfi Garzon
