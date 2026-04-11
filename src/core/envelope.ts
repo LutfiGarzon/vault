@@ -1,6 +1,6 @@
 import _sodium from 'libsodium-wrappers';
 import { deriveKey } from './crypto.js';
-import { GlobalIdentity } from './config/identity.js';
+import { GlobalIdentity } from './identity.js';
 
 export interface EncryptedDEK {
   salt?: string;

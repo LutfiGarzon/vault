@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import { initCommand } from './init.js';
-import { shareCommand } from './share.js';
-import { ingestCommand } from './ingest.js';
-import { addCommand } from './add.js';
-import { runVault } from './run.js';
+import { initCommand } from './features/init/init.js';
+import { shareCommand } from './features/share/share.js';
+import { ingestCommand } from './features/ingest/ingest.js';
+import { addCommand } from './features/add/add.js';
+import { runVault } from './core/run.js';
 
 export function runCli() {
   const program = new Command();
@@ -59,11 +59,6 @@ export function runCli() {
     .argument('[command...]', 'Command to execute with injected variables. If empty, spawns a subshell.')
     .passThroughOptions()
     .action((commandArgs: string[]) => {
-      // Prevent running runVault if a known command was typed but caught as [command...]
-      // commander handles subcommands before arguments on the program itself,
-      // but we need to ensure "vault share" doesn't trigger runVault(['share']).
-      // Actually, standard action on program runs if no subcommands matched. Wait!
-      // In commander, program.argument at the top level catches everything that isn't a subcommand.
       runVault(commandArgs).catch(err => {
         console.error(err);
         process.exit(1);

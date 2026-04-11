@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import * as p from '@clack/prompts';
-import { resolveGlobalMasterKey } from './init.js';
-import { decryptLocalVault, generateLocalVault, LocalVaultPayload } from './envelope.js';
-import { Flexoki, log } from './theme.js';
+import { resolveGlobalMasterKey } from '../../core/run.js';
+import { decryptLocalVault, generateLocalVault, LocalVaultPayload } from '../../core/envelope.js';
+import { log } from '../tui/components/theme.js';
+import { promptForValue } from './tui.js';
 import _sodium from 'libsodium-wrappers';
 
 const VAULT_FILE = '.env.vault';
@@ -16,18 +16,7 @@ export async function addCommand(key: string) {
     process.exit(1);
   }
 
-  const valuePrompt = await p.password({
-    message: Flexoki.tx(`Enter value for `) + Flexoki.blue(key) + Flexoki.tx(` (hidden):`),
-    validate: (val) => {
-      if (!val) return Flexoki.red('Value cannot be empty.');
-    }
-  });
-
-  if (p.isCancel(valuePrompt)) {
-    p.cancel(Flexoki.yellow('Operation cancelled.'));
-    process.exit(1);
-  }
-  const value = valuePrompt as string;
+  const value = await promptForValue(key);
 
   let fileContent = fs.readFileSync(vaultPath, 'utf-8');
   let payload: LocalVaultPayload;
@@ -56,20 +45,15 @@ export async function addCommand(key: string) {
   }
 
   const envVars = dotenv.parse(decryptedString);
-  
-  // Add/Update the key
   envVars[key] = value;
   
-  // Serialize back to .env format
   const plainTextPayload = Object.entries(envVars)
     .map(([k, v]) => `${k}=${v}`)
     .join('\n');
 
-  // Re-encrypt
   const newPayload = await generateLocalVault(plainTextPayload, gmk);
   _sodium.memzero(gmk);
   
   fs.writeFileSync(vaultPath, JSON.stringify(newPayload, null, 2), 'utf-8');
-  
-  log.success(`Successfully set ${Flexoki.blue(key)} in ${VAULT_FILE}.`);
+  log.success(`Successfully set ${key} in ${VAULT_FILE}.`);
 }

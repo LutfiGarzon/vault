@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import * as p from '@clack/prompts';
-import { decryptPayload, EncryptedPayload } from './crypto.js';
-import { createLocalVault } from './init.js';
+import { decryptPayload, EncryptedPayload, deriveKey } from '../../core/crypto.js';
+import { createLocalVault } from '../../core/run.js';
+import { Flexoki, log } from '../tui/components/theme.js';
+import { promptIngestOtp, confirmOverwrite } from './tui.js';
 import _sodium from 'libsodium-wrappers';
-import { deriveKey } from './crypto.js';
-import { Flexoki, log } from './theme.js';
 
 const VAULT_FILE = '.env.vault';
 
@@ -28,10 +28,7 @@ export async function ingestCommand(filepath: string) {
     process.exit(1);
   }
 
-  const otp = await p.password({
-    message: Flexoki.tx('Enter the One-Time Password (OTP) to decrypt the transport file:'),
-  });
-  if (p.isCancel(otp)) process.exit(1);
+  const otp = await promptIngestOtp();
 
   let plainTextPayload = '';
   try {
@@ -39,7 +36,7 @@ export async function ingestCommand(filepath: string) {
     const nonceBytes = sodium.from_hex(payload.nonce);
     const cipherBytes = sodium.from_hex(payload.ciphertext);
 
-    const key = await deriveKey(otp as string, saltBytes);
+    const key = await deriveKey(otp, saltBytes);
     plainTextPayload = await decryptPayload(cipherBytes, nonceBytes, key);
     
     sodium.memzero(key);
@@ -53,14 +50,10 @@ export async function ingestCommand(filepath: string) {
     log.info(`Local ${VAULT_FILE} not found. Creating a new one from ingested secrets...`);
     await createLocalVault(plainTextPayload);
   } else {
-    // Merge existing vault with ingested payload
     log.warn(`A local ${VAULT_FILE} already exists.`);
-    log.warn(`Currently, 'vault ingest' when a vault already exists overwrites it. Implementation overwrites for now.`);
     
-    const confirm = await p.confirm({
-      message: Flexoki.tx('Do you want to overwrite your existing local vault with the ingested secrets?'),
-    });
-    if (!confirm || p.isCancel(confirm)) {
+    const confirm = await confirmOverwrite();
+    if (!confirm) {
       log.info('Ingest cancelled. Transport file was NOT destroyed.');
       process.exit(0);
     }
@@ -68,7 +61,6 @@ export async function ingestCommand(filepath: string) {
     await createLocalVault(plainTextPayload);
   }
 
-  // Destroy the transport file
   fs.unlinkSync(ingestPath);
   p.outro(Flexoki.green(`✅ Transport file ${filepath} successfully ingested and permanently destroyed.`));
 }

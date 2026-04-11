@@ -2,14 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import * as p from '@clack/prompts';
 import dotenv from 'dotenv';
-import { Flexoki } from './theme.js';
+import { Flexoki } from '../tui/components/theme.js';
 
+/**
+ * Scans for .env files in the target directory.
+ */
 export function scanEnvFiles(dir: string): string[] {
   const files = fs.readdirSync(dir);
   return files.filter(f => f.includes('.env') && !f.includes('.vault') && fs.statSync(path.join(dir, f)).isFile());
 }
 
-export async function runTui(): Promise<{ selectedEnv: Record<string, string>, password?: string }> {
+/**
+ * Runs the interactive initialization TUI.
+ */
+export async function runTui(): Promise<{ selectedEnv: Record<string, string> }> {
   p.intro(Flexoki.purple('Vault Initialization'));
 
   const envFiles = scanEnvFiles(process.cwd());

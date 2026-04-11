@@ -2,15 +2,26 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import _sodium from 'libsodium-wrappers';
-import { runTui } from './tui.js';
-import { setupGlobalIdentity, unlockGlobalMasterKey, generateLocalVault, generateRecoveryKey, generateHardwareKey } from './envelope.js';
-import { retrieveHardwareKey, storeHardwareKey } from './hardware-key.js';
-import { loadGlobalIdentity, saveGlobalIdentity } from './config/identity.js';
-import { Flexoki, log } from './theme.js';
 import * as p from '@clack/prompts';
+import { 
+  decryptLocalVault, 
+  generateLocalVault, 
+  LocalVaultPayload, 
+  setupGlobalIdentity, 
+  unlockGlobalMasterKey, 
+  generateRecoveryKey, 
+  generateHardwareKey 
+} from './envelope.js';
+import { execWithEnv } from './exec.js';
+import { loadGlobalIdentity, saveGlobalIdentity } from './identity.js';
+import { storeHardwareKey, retrieveHardwareKey } from './hardware-key.js';
+import { Flexoki, log } from '../features/tui/components/theme.js';
 
 const VAULT_FILE = '.env.vault';
 
+/**
+ * Ensures the Global Identity exists and returns the GMK.
+ */
 export async function resolveGlobalMasterKey(providedPassword?: string): Promise<Uint8Array> {
   const identity = loadGlobalIdentity();
 
@@ -76,6 +87,9 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
   }
 }
 
+/**
+ * Encrypts a payload into a local .env.vault file.
+ */
 export async function createLocalVault(plainTextPayload: string, providedPassword?: string) {
   const gmk = await resolveGlobalMasterKey(providedPassword);
   const payload = await generateLocalVault(plainTextPayload, gmk);
@@ -87,29 +101,44 @@ export async function createLocalVault(plainTextPayload: string, providedPasswor
   p.outro(Flexoki.green(`✅ Vault successfully initialized at ${VAULT_FILE}`));
 }
 
-export async function initCommand(headlessFile?: string) {
+/**
+ * Main command execution wrapper.
+ */
+export async function runVault(commandArgs: string[]) {
   await _sodium.ready;
 
-  let selectedEnv: Record<string, string> = {};
-  let password = process.env.VAULT_MASTER_PASSWORD || '';
-
-  if (headlessFile) {
-    const filePath = path.resolve(process.cwd(), headlessFile);
-    if (!fs.existsSync(filePath)) {
-      console.error(`❌ Error: ${headlessFile} not found.`);
-      process.exit(1);
-    }
-    const content = fs.readFileSync(filePath, 'utf-8');
-    selectedEnv = dotenv.parse(content);
-  } else {
-    const tuiResult = await runTui();
-    selectedEnv = tuiResult.selectedEnv;
-    password = tuiResult.password || password;
+  const vaultPath = path.resolve(process.cwd(), VAULT_FILE);
+  if (!fs.existsSync(vaultPath)) {
+    log.error(`${VAULT_FILE} not found in current directory. Run 'vault init' first.`);
+    process.exit(1);
   }
 
-  const plainTextPayload = Object.entries(selectedEnv)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
+  let fileContent = fs.readFileSync(vaultPath, 'utf-8');
+  let payload: LocalVaultPayload;
+  try {
+    payload = JSON.parse(fileContent);
+  } catch {
+    log.error(`Invalid ${VAULT_FILE} format.`);
+    process.exit(1);
+  }
 
-  await createLocalVault(plainTextPayload, password);
+  let gmk: Uint8Array;
+  try {
+    gmk = await resolveGlobalMasterKey();
+  } catch (error: any) {
+    log.error(`Failed to resolve Global Identity: ${error.message}`);
+    process.exit(1);
+  }
+
+  let decryptedString = '';
+  try {
+    decryptedString = await decryptLocalVault(payload, gmk);
+    _sodium.memzero(gmk);
+  } catch (error: any) {
+    log.error(`Failed to decrypt vault: corrupted payload or mismatched global identity.`);
+    process.exit(1);
+  }
+
+  const envVars = dotenv.parse(decryptedString);
+  execWithEnv(envVars, commandArgs);
 }

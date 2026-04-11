@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { Flexoki, log } from './theme.js';
+import { Flexoki, log } from '../features/tui/components/theme.js';
 
 /**
  * Executes a specific command or spawns a subshell with the injected environment variables.

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { EncryptedDEK } from '../envelope.js';
+import { EncryptedDEK } from './envelope.js';
 
 export interface GlobalIdentity {
   salt: string;
