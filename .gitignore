@@ -5,3 +5,7 @@ dist/
 shared.vault
 test*.js
 test*.swift
+*.log
+.DS_Store
+.vscode/
+.idea/
