@@ -14,15 +14,24 @@ export async function storeHardwareKey(serviceName: string, accountName: string,
   const swiftScript = `
 import Foundation
 import Security
+import LocalAuthentication
 
 let service = "${serviceName}"
 let account = "${accountName}"
 let keyData = "${keyData}".data(using: .utf8)!
 
+// Check if Biometrics are available first
+let context = LAContext()
+var error: NSError?
+if !context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+    print("ERROR: Biometrics not available on this machine. \\(error?.localizedDescription ?? "")")
+    exit(1)
+}
+
 guard let accessControl = SecAccessControlCreateWithFlags(
     nil,
     kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-    .biometryAny,
+    .userPresence,
     nil
 ) else {
     print("ERROR: Could not create access control object")
@@ -52,7 +61,7 @@ if status == errSecSuccess {
     exit(0)
 } else {
     let message = SecCopyErrorMessageString(status, nil) as String? ?? "Unknown error"
-    print("ERROR: \\(status) - \\(message)")
+    print("ERROR: Status \\(status) - \\(message)")
     exit(1)
 }
 `;
@@ -61,11 +70,11 @@ if status == errSecSuccess {
   fs.writeFileSync(scriptPath, swiftScript, 'utf8');
 
   try {
-    const { stdout, stderr } = await execAsync(`swift "${scriptPath}"`);
+    const { stdout } = await execAsync(`swift "${scriptPath}"`);
     if (stdout.trim() === 'SUCCESS') return { success: true };
-    return { success: false, error: stdout.trim() || stderr.trim() };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: stdout.trim() };
+  } catch (err: any) {
+    return { success: false, error: err.stdout?.trim() || err.stderr?.trim() || err.message };
   } finally {
     if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
   }
@@ -97,7 +106,7 @@ if status == errSecSuccess, let data = dataTypeRef as? Data, let key = String(da
     print(key)
     exit(0)
 } else {
-    exit(status == errSecUserCanceled ? 2 : 1)
+    exit(1)
 }
 `;
   const scriptPath = path.join(os.tmpdir(), `vault-retrieve-key-${Date.now()}.swift`);
