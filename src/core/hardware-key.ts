@@ -6,9 +6,9 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
-export async function storeHardwareKey(serviceName: string, accountName: string, keyData: string): Promise<boolean> {
+export async function storeHardwareKey(serviceName: string, accountName: string, keyData: string): Promise<{ success: boolean; error?: string }> {
   if (os.platform() !== 'darwin') {
-    return false; // Bypass KEK 3 on non-macOS
+    return { success: false, error: 'Hardware keys are only supported on macOS.' };
   }
 
   const swiftScript = `
@@ -30,7 +30,15 @@ guard let accessControl = SecAccessControlCreateWithFlags(
     exit(1)
 }
 
-let query: [String: Any] = [
+let deleteQuery: [String: Any] = [
+    kSecClass as String: kSecClassGenericPassword,
+    kSecAttrService as String: service,
+    kSecAttrAccount as String: account
+]
+
+SecItemDelete(deleteQuery as CFDictionary)
+
+let addQuery: [String: Any] = [
     kSecClass as String: kSecClassGenericPassword,
     kSecAttrService as String: service,
     kSecAttrAccount as String: account,
@@ -38,8 +46,7 @@ let query: [String: Any] = [
     kSecAttrAccessControl as String: accessControl
 ]
 
-SecItemDelete(query as CFDictionary)
-let status = SecItemAdd(query as CFDictionary, nil)
+let status = SecItemAdd(addQuery as CFDictionary, nil)
 
 if status == errSecSuccess {
     print("SUCCESS")
@@ -55,13 +62,12 @@ if status == errSecSuccess {
 
   try {
     const { stdout, stderr } = await execAsync(`swift "${scriptPath}"`);
-    return stdout.trim() === 'SUCCESS';
-  } catch (error) {
-    return false;
+    if (stdout.trim() === 'SUCCESS') return { success: true };
+    return { success: false, error: stdout.trim() || stderr.trim() };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   } finally {
-    if (fs.existsSync(scriptPath)) {
-      fs.unlinkSync(scriptPath);
-    }
+    if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
   }
 }
 

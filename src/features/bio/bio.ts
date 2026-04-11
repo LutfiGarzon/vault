@@ -48,10 +48,11 @@ export async function bioCommand() {
 
   // 2. Setup Hardware Key
   const hardwareKeyString = generateHardwareKey();
-  const stored = await storeHardwareKey('VaultCLI', 'com.vault.global.hardwarekey', hardwareKeyString);
+  const result = await storeHardwareKey('VaultCLI', 'com.vault.global.hardwarekey', hardwareKeyString);
 
-  if (!stored) {
-    log.error("Failed to store hardware key. Ensure your Mac supports Touch ID and you are on macOS.");
+  if (!result.success) {
+    log.error(`Failed to store hardware key: ${result.error}`);
+    log.info("Ensure your Mac supports Touch ID and you are running on macOS.");
     process.exit(1);
   }
 

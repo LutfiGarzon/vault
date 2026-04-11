@@ -57,7 +57,8 @@ export function runCli() {
     });
 
   program
-    .command('bio')
+    .command('enable-biometric')
+    .alias('b')
     .description('Enable biometric authentication (Touch ID) for the global identity')
     .action(() => {
       bioCommand().catch(err => {
