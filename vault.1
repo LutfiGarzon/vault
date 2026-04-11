@@ -11,6 +11,8 @@ vault \- local secure storage and environment variable injector
 .B vault add
 \fIkey\fR
 .br
+.B vault bio
+.br
 .B vault share
 .br
 .B vault ingest
@@ -26,6 +28,9 @@ Initialize a new project vault (.env.vault). If no global identity exists on the
 .TP
 .B add \fIkey\fR (alias: \-a)
 Interactively add or update a secret key in the local vault. Values are entered via a hidden prompt to prevent shoulder-surfing and shell history leaks.
+.TP
+.B bio
+Enable biometric authentication (Touch ID) for the global machine identity. This allows you to upgrade an existing password-based identity to use fingerprint authentication.
 .TP
 .B share
 Export current project secrets to a transport-ready file (\fIshared.vault\fR) encrypted with a One-Time Password (OTP).
