@@ -2,7 +2,10 @@
   "name": "vault",
   "version": "1.0.0",
   "description": "Vault like tool cli for local secure storage for env variables.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "bin": {
+    "vault": "dist/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

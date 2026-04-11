@@ -3,6 +3,7 @@ import { initCommand } from './features/init/init.js';
 import { shareCommand } from './features/share/share.js';
 import { ingestCommand } from './features/ingest/ingest.js';
 import { addCommand } from './features/add/add.js';
+import { bioCommand } from './features/bio/bio.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -50,6 +51,16 @@ export function runCli() {
     .description('Add or update a secret in the local vault interactively')
     .action((key) => {
       addCommand(key).catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
+
+  program
+    .command('bio')
+    .description('Enable biometric authentication (Touch ID) for the global identity')
+    .action(() => {
+      bioCommand().catch(err => {
         console.error(err);
         process.exit(1);
       });
