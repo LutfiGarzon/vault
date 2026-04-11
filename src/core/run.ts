@@ -26,7 +26,7 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
   const identity = loadGlobalIdentity();
 
   if (!identity) {
-    console.log(`\n` + Flexoki.purple(`✨ Initializing Global Vault Identity for the first time...`));
+    console.log(`\n` + Flexoki.purple(`[VAULT] Initializing Global Vault Identity for the first time...`));
     let password = providedPassword;
     if (!password) {
       const pass = await p.password({
@@ -98,7 +98,7 @@ export async function createLocalVault(plainTextPayload: string, providedPasswor
   fs.writeFileSync(vaultPath, JSON.stringify(payload, null, 2), 'utf-8');
 
   _sodium.memzero(gmk);
-  p.outro(Flexoki.green(`✅ Vault successfully initialized at ${VAULT_FILE}`));
+  p.outro(Flexoki.green(`[SUCCESS] Vault successfully initialized at ${VAULT_FILE}`));
 }
 
 /**

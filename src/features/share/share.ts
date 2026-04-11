@@ -45,7 +45,7 @@ export async function shareCommand() {
     const sharedPath = path.resolve(process.cwd(), SHARED_FILE);
     fs.writeFileSync(sharedPath, JSON.stringify(sharedPayload, null, 2), 'utf-8');
 
-    p.outro(Flexoki.green(`✅ Shared vault created at ${SHARED_FILE}. Share this file and the OTP securely.`));
+    p.outro(Flexoki.green(`[SUCCESS] Shared vault created at ${SHARED_FILE}. Share this file and the OTP securely.`));
   } catch (err: any) {
     log.error(err.message);
     process.exit(1);

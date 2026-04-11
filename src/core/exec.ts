@@ -19,7 +19,8 @@ export function execWithEnv(envVars: Record<string, string>, commandArgs: string
     });
 
     child.on('exit', (code) => {
-      console.log(`\n` + Flexoki.green(`🔓 Subshell exited. Secrets destroyed from memory.`));
+      process.stdout.write('\n');
+      log.success(`Subshell exited. Secrets destroyed from memory.`);
       process.exit(code ?? 0);
     });
 

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import _sodium from 'libsodium-wrappers';
 import { runTui } from './tui.js';
 import { createLocalVault } from '../../core/run.js';
+import { log } from '../tui/components/theme.js';
 
 /**
  * The business logic for the 'vault init' command.
@@ -17,7 +18,7 @@ export async function initCommand(headlessFile?: string) {
   if (headlessFile) {
     const filePath = path.resolve(process.cwd(), headlessFile);
     if (!fs.existsSync(filePath)) {
-      console.error(`❌ Error: ${headlessFile} not found.`);
+      log.error(`${headlessFile} not found.`);
       process.exit(1);
     }
     const content = fs.readFileSync(filePath, 'utf-8');
