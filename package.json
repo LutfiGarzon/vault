@@ -1,11 +1,14 @@
 {
-  "name": "vault",
+  "name": "@lutfi.gr/vault",
   "version": "1.0.0",
   "description": "Vault like tool cli for local secure storage for env variables.",
   "main": "dist/index.js",
   "bin": {
     "vault": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "vitest run",
     "build": "tsc",
