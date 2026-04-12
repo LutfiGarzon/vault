@@ -69,14 +69,21 @@ Securely add a variable without touching a text file:
 vault add API_KEY
 ```
 
-### Execute with secrets
-Run your application with variables injected into `process.env`:
+### Execute any command with secrets
+Inject variables into `process.env` (Node), `os.environ` (Python), or any child process:
 ```bash
+# Node.js
 vault npm start
+
+# Python
+vault python app.py
+
+# Flutter (using FVM)
+vault fvm flutter run
 ```
 
 ### Secure Subshell
-Open a new shell session where your secrets are available:
+Open a new shell session where your secrets are available to every command you type:
 ```bash
 vault
 echo $MY_SECRET
