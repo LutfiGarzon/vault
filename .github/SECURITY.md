@@ -4,7 +4,7 @@
 
 We take the security of Vault CLI seriously. If you believe you have found a security vulnerability, please **do not open a public issue**. 
 
-Instead, please report it privately by sending an email to [lgarzon@icloud.com](mailto:lgarzon@icloud.com).
+Instead, please report it privately by sending an email to [lgarzon@infeenix.com](mailto:lgarzon@infeenix.com).
 
 When reporting a vulnerability, please include:
 - A description of the issue.
