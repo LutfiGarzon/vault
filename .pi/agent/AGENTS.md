@@ -11,6 +11,7 @@ guidelines:
   - "Hardware Integrity: Any changes to src/core/bridge.swift require a re-compile and re-sign of vault-bridge."
   - "Testing: New features must include a corresponding test in the /test directory mirroring the /src structure."
   - "Native ESM: Always use .js extensions in imports."
+  - "Automated Setup: Use `./scripts/setup.sh` for compiling and signing the hardware bridge in automated environments."
 ---
 # Vault Project Guidelines
 This file ensures that any agent or contributor adheres to the cryptographic and architectural standards of the Vault CLI.
