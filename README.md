@@ -14,6 +14,12 @@
 
 ---
 
+## › Demo
+
+[VIDEO_URL_HERE]
+
+---
+
 ## › Acknowledgments
 
 The Vault CLI interface is styled with **Flexoki**, an inky color scheme for toolmakers. 
@@ -134,3 +140,11 @@ This project is built with a **feature-first modular architecture**. To add a ne
 ---
 **Author**: Lutfi Garzon  
 **License**: Apache-2.0
+
+## › Support the Project
+
+If Vault has helped you secure your workflow, consider supporting its development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20me%20on%20GitHub-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/LutfiGarzon)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/lgarzon)
+[![Deel](https://img.shields.io/badge/Support%20via%20Deel-blue?style=for-the-badge&logo=deel&logoColor=white)](https://app.deel.com/YOUR_DEEP_LINK)
