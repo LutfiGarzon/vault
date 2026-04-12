@@ -16,7 +16,7 @@
 
 ## › Demo
 
-[VIDEO_URL_HERE]
+https://github.com/user-attachments/assets/dd49f93b-a19e-4872-938f-000ad8e82c85
 
 ---
 
