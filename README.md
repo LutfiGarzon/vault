@@ -13,6 +13,13 @@
 
 ---
 
+## › Acknowledgments
+
+The Vault CLI interface is styled with **Flexoki**, an inky color scheme for toolmakers. 
+Special thanks to [Steph Ango](https://stephango.com/flexoki) for creating this beautiful, high-contrast palette that makes terminal work a delight.
+
+---
+
 ## › Installation
 
 ### 1. Prerequisites
