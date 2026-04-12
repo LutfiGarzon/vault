@@ -153,6 +153,6 @@ export async function runVault(commandArgs: string[]) {
     }
   }
 
+  await execWithEnv(combinedEnv, commandArgs, gmk);
   _sodium.memzero(gmk);
-  execWithEnv(combinedEnv, commandArgs, gmk);
 }
