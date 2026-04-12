@@ -8,7 +8,7 @@ import { log, Flexoki } from '../tui/components/theme.js';
 import { promptForValue } from './tui.js';
 import _sodium from 'libsodium-wrappers';
 
-export async function addCommand(key: string, options: { global?: boolean }) {
+export async function addCommand(key: string, valueArg: string | undefined, options: { global?: boolean }) {
   const isGlobal = !!options.global;
   const vaultPath = isGlobal ? getGlobalVaultPath() : path.resolve(process.cwd(), '.env.vault');
   
@@ -17,7 +17,7 @@ export async function addCommand(key: string, options: { global?: boolean }) {
     process.exit(1);
   }
 
-  const value = await promptForValue(key);
+  const value = valueArg || await promptForValue(key);
 
   let gmk: Uint8Array;
   try {

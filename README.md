@@ -9,6 +9,7 @@
 *   **✘ No Plain-Text**: Stop storing secrets in naked `.env` files that can be leaked or stolen.
 *   **◈ Hardware Gated**: Your Global Identity is locked behind the macOS Secure Enclave. Use your fingerprint to unlock project secrets.
 *   **✔ Temporary Injection**: Secrets are injected into a child process and destroyed the moment you exit the session.
+*   **◈ Agent Aware**: AI agents can securely manage your secrets without ever seeing your master password.
 *   **◈ Clean Aesthetic**: Warm, professional TUI using the **Flexoki** color palette.
 
 ---
@@ -25,7 +26,7 @@ Special thanks to [Steph Ango](https://stephango.com/flexoki) for creating this 
 ### 1. Prerequisites
 *   **macOS** (for Touch ID/Secure Enclave support).
 *   **Swift** (part of Xcode Command Line Tools).
-*   **Node.js** (v18+ recommended).
+*   **Node.js** (v20+ recommended).
 
 ### 2. Build from Source
 ```bash
@@ -51,26 +52,40 @@ npm link
 
 ## › Usage
 
-### Initialize a project
+### 1. Project Initialization
 Scan your `.env` files and create an encrypted `.env.vault`:
 ```bash
 vault init
 ```
 
-### Enable Biometrics (Touch ID)
+### 2. Global Secrets (Migrate from .zshrc)
+Store machine-wide secrets (like `NPM_TOKEN` or `AWS_KEYS`) in your global machine identity. You can automatically migrate secrets from your shell config:
+```bash
+vault init -g -f ~/.zshrc
+```
+Once migrated, you can safely delete the plain-text exports from your `.zshrc`.
+
+### 3. Enable Biometrics (Touch ID)
 Upgrade your machine identity from password-only to fingerprint:
 ```bash
 vault eb
 ```
 
-### Add/Update a secret
-Securely add a variable without touching a text file:
+### 4. Add/Update a secret
+Add a variable to the local project or global vault:
 ```bash
+# Interactively (securely hidden)
 vault add API_KEY
+
+# Machine-wide global secret
+vault add NPM_TOKEN --global
+
+# Non-Interactive (useful for agents)
+vault add API_KEY "my-secret-value"
 ```
 
-### Execute any command with secrets
-Inject variables into `process.env` (Node), `os.environ` (Python), or any child process:
+### 5. Execute with secrets
+Inject variables into `process.env` (Node), `os.environ` (Python), or any child process. This automatically merges **Global** + **Project** secrets:
 ```bash
 # Node.js
 vault npm start
@@ -82,7 +97,7 @@ vault python app.py
 vault fvm flutter run
 ```
 
-### Secure Subshell
+### 6. Secure Subshell
 Open a new shell session where your secrets are available to every command you type:
 ```bash
 vault
@@ -92,11 +107,13 @@ exit
 
 ---
 
-## › Architecture
+## › Agent Mode (AI Support)
 
-*   `src/core/`: The cryptographic and process engine.
-*   `src/features/`: Modular command logic (add, init, share, etc.).
-*   `src/features/tui/components/`: Reusable Flexoki-themed UI elements.
+Vault is designed for the age of AI. When you run an agent with Vault (e.g., `vault pi`), the CLI creates a **temporary session token**.
+
+1.  **Read Access**: The agent automatically sees all decrypted secrets in its environment.
+2.  **Write Access**: The agent can call `vault add KEY VALUE` to store new secrets without triggering a biometric prompt.
+3.  **Security**: The session token is only valid for the life of the agent process. It is never stored on disk and cannot be used after you close the agent.
 
 ---
 
@@ -106,15 +123,14 @@ This project is built with a **feature-first modular architecture**. To add a ne
 1.  Create `src/features/your-feature/your-feature.ts` for logic.
 2.  Create `src/features/your-feature/tui.ts` for interactions.
 3.  Add the route to `src/cli.ts`.
-4.  Add a matching test in `test/features/your-feature/`.
 
 ---
 
 ## › Security Guidelines
 *   **Memory Safety**: All sensitive keys are wiped using `sodium.memzero()` immediately after use.
 *   **Disk Safety**: Decrypted payloads reside only in memory; they are never written to temporary files.
-*   **Transport Safety**: Shared vaults use One-Time Passwords (OTP) and a separate encryption layer to prevent leaking global identity metadata.
+*   **Hardware Integrity**: Any changes to `src/core/bridge.swift` require a re-compile and re-sign of `vault-bridge`.
 
 ---
-**Author**: Lutfi Garzon
+**Author**: Lutfi Garzon  
 **License**: Apache-2.0

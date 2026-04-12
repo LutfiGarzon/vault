@@ -1,12 +1,20 @@
 import { spawn } from 'child_process';
 import { Flexoki, log } from '../features/tui/components/theme.js';
+import { createSession, destroySession } from './session.js';
 
 /**
  * Executes a specific command or spawns a subshell with the injected environment variables.
  * It inherits stdio so the user can interact.
  */
-export function execWithEnv(envVars: Record<string, string>, commandArgs: string[]): void {
+export async function execWithEnv(envVars: Record<string, string>, commandArgs: string[], gmk?: Uint8Array): Promise<void> {
   const childEnv = { ...process.env, ...envVars };
+  
+  // If we have a GMK, create a session for the child process (Agent Mode)
+  let sessionToken: string | undefined;
+  if (gmk) {
+    sessionToken = await createSession(gmk);
+    childEnv.VAULT_SESSION_TOKEN = sessionToken;
+  }
 
   if (commandArgs.length === 0) {
     const shell = process.env.SHELL || '/bin/sh';
@@ -18,7 +26,8 @@ export function execWithEnv(envVars: Record<string, string>, commandArgs: string
       env: childEnv
     });
 
-    child.on('exit', (code) => {
+    child.on('exit', async (code) => {
+      if (sessionToken) await destroySession(sessionToken);
       process.stdout.write('\n');
       log.success(`Subshell exited. Secrets destroyed from memory.`);
       process.exit(code ?? 0);
@@ -36,7 +45,8 @@ export function execWithEnv(envVars: Record<string, string>, commandArgs: string
       env: childEnv
     });
 
-    child.on('exit', (code) => {
+    child.on('exit', async (code) => {
+      if (sessionToken) await destroySession(sessionToken);
       process.exit(code ?? 0);
     });
 

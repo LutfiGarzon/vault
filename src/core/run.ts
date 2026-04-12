@@ -15,11 +15,18 @@ import {
 import { execWithEnv } from './exec.js';
 import { loadGlobalIdentity, saveGlobalIdentity, getGlobalVaultPath } from './identity.js';
 import { storeHardwareKey, retrieveHardwareKey } from './hardware-key.js';
+import { createSession, resolveSession, destroySession } from './session.js';
 import { Flexoki, log } from '../features/tui/components/theme.js';
 
 const VAULT_FILE = '.env.vault';
 
 export async function resolveGlobalMasterKey(providedPassword?: string): Promise<Uint8Array> {
+  // 1. Check for Active Session (Agent Mode / Recursive call)
+  if (process.env.VAULT_SESSION_TOKEN) {
+    const sessionGmk = await resolveSession(process.env.VAULT_SESSION_TOKEN);
+    if (sessionGmk) return sessionGmk;
+  }
+
   const identity = loadGlobalIdentity();
 
   if (!identity) {
@@ -140,5 +147,5 @@ export async function runVault(commandArgs: string[]) {
   }
 
   _sodium.memzero(gmk);
-  execWithEnv(combinedEnv, commandArgs);
+  execWithEnv(combinedEnv, commandArgs, gmk);
 }
