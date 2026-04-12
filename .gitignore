@@ -9,3 +9,10 @@ test*.swift
 .DS_Store
 .vscode/
 .idea/
+
+# Agent configurations
+.pi/*
+!.pi/agent/
+!.pi/agent/AGENTS.md
+CLAUDE.md
+GEMINI.md
