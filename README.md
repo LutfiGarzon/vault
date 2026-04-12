@@ -66,7 +66,7 @@ vault init -g -f ~/.zshrc
 Once migrated, you can safely delete the plain-text exports from your `.zshrc`.
 
 ### 3. Enable Biometrics (Touch ID)
-Upgrade your machine identity from password-only to fingerprint:
+Upgrade your machine identity from password-only to biometrics:
 ```bash
 vault eb
 ```

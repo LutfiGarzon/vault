@@ -11,7 +11,7 @@ vault \- local secure storage and environment variable injector
 .B vault add
 \fIkey\fR [value] [\-g]
 .br
-.B vault enable-biometric
+.B vault enable-biometrics
 .br
 .B vault share
 .br
@@ -33,7 +33,7 @@ Interactively add or update a secret key in the local vault.
 Use \fB\-g\fR or \fB\-\-global\fR to target the machine-wide vault (\fI~/.vault/global.vault\fR).
 Values are entered via a hidden prompt if not provided as an argument.
 .TP
-.B enable-biometric (alias: eb)
+.B enable-biometrics (alias: eb)
 Enable biometric authentication (Touch ID) for the global machine identity. This allows you to upgrade an existing password-based identity to use fingerprint authentication.
 .TP
 .B share
