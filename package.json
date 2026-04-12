@@ -15,8 +15,8 @@
     "url": "git+https://github.com/LutfiGarzon/vault.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Lutfi Garzon",
+  "license": "Apache-2.0",
   "type": "module",
   "bugs": {
     "url": "https://github.com/LutfiGarzon/vault/issues"

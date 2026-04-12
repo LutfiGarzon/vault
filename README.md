@@ -117,4 +117,4 @@ This project is built with a **feature-first modular architecture**. To add a ne
 
 ---
 **Author**: Lutfi Garzon
-**License**: ISC
+**License**: Apache-2.0
