@@ -27,7 +27,10 @@ Secrets are decrypted in-memory and injected exclusively into temporary child pr
 Initialize a new project vault (.env.vault). If no global identity exists on the machine, it triggers the first-time setup (Master Password, Recovery Key, and Touch ID hardware key).
 .TP
 .B add \fIkey\fR (alias: \-a)
-Interactively add or update a secret key in the local vault. Values are entered via a hidden prompt to prevent shoulder-surfing and shell history leaks.
+Interactively add or update a secret key in the local vault. 
+.br
+Use \fB\-g\fR or \fB\-\-global\fR to target the machine-wide vault (\fI~/.vault/global.vault\fR).
+Values are entered via a hidden prompt to prevent shoulder-surfing.
 .TP
 .B enable-biometric (alias: eb)
 Enable biometric authentication (Touch ID) for the global machine identity. This allows you to upgrade an existing password-based identity to use fingerprint authentication.

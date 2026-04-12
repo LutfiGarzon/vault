@@ -3,29 +3,21 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, generateLocalVault, LocalVaultPayload } from '../../core/envelope.js';
-import { log } from '../tui/components/theme.js';
+import { getGlobalVaultPath } from '../../core/identity.js';
+import { log, Flexoki } from '../tui/components/theme.js';
 import { promptForValue } from './tui.js';
 import _sodium from 'libsodium-wrappers';
 
-const VAULT_FILE = '.env.vault';
-
-export async function addCommand(key: string) {
-  const vaultPath = path.resolve(process.cwd(), VAULT_FILE);
-  if (!fs.existsSync(vaultPath)) {
-    log.error(`${VAULT_FILE} not found. Run 'vault init' first.`);
+export async function addCommand(key: string, options: { global?: boolean }) {
+  const isGlobal = !!options.global;
+  const vaultPath = isGlobal ? getGlobalVaultPath() : path.resolve(process.cwd(), '.env.vault');
+  
+  if (!isGlobal && !fs.existsSync(vaultPath)) {
+    log.error(`.env.vault not found. Run 'vault init' first or use --global.`);
     process.exit(1);
   }
 
   const value = await promptForValue(key);
-
-  let fileContent = fs.readFileSync(vaultPath, 'utf-8');
-  let payload: LocalVaultPayload;
-  try {
-    payload = JSON.parse(fileContent);
-  } catch {
-    log.error(`Invalid ${VAULT_FILE} format.`);
-    process.exit(1);
-  }
 
   let gmk: Uint8Array;
   try {
@@ -35,25 +27,34 @@ export async function addCommand(key: string) {
     process.exit(1);
   }
 
-  let decryptedString = '';
-  try {
-    decryptedString = await decryptLocalVault(payload, gmk);
-  } catch (error: any) {
-    _sodium.memzero(gmk);
-    log.error(`Failed to decrypt local vault.`);
-    process.exit(1);
+  let envVars: Record<string, string> = {};
+
+  if (fs.existsSync(vaultPath)) {
+    let fileContent = fs.readFileSync(vaultPath, 'utf-8');
+    try {
+      const payload: LocalVaultPayload = JSON.parse(fileContent);
+      const decryptedString = await decryptLocalVault(payload, gmk);
+      envVars = dotenv.parse(decryptedString);
+    } catch {
+      log.error(`Invalid vault format at ${vaultPath}.`);
+      process.exit(1);
+    }
   }
 
-  const envVars = dotenv.parse(decryptedString);
+  // Add/Update the key
   envVars[key] = value;
   
   const plainTextPayload = Object.entries(envVars)
     .map(([k, v]) => `${k}=${v}`)
     .join('\n');
 
+  // Re-encrypt
   const newPayload = await generateLocalVault(plainTextPayload, gmk);
   _sodium.memzero(gmk);
   
+  fs.mkdirSync(path.dirname(vaultPath), { recursive: true });
   fs.writeFileSync(vaultPath, JSON.stringify(newPayload, null, 2), 'utf-8');
-  log.success(`Successfully set ${key} in ${VAULT_FILE}.`);
+  
+  const target = isGlobal ? 'global vault' : '.env.vault';
+  log.success(`Successfully set ${Flexoki.blue(key)} in ${target}.`);
 }

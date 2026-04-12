@@ -13,10 +13,13 @@ export interface GlobalIdentity {
 }
 
 export function getIdentityPath(): string {
-  if (process.env.XDG_CONFIG_HOME) {
-    return path.join(process.env.XDG_CONFIG_HOME, 'vault', 'identity.json');
-  }
-  return path.join(os.homedir(), '.vault', 'identity.json');
+  const root = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.vault');
+  return path.join(root, 'identity.json');
+}
+
+export function getGlobalVaultPath(): string {
+  const root = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.vault');
+  return path.join(root, 'global.vault');
 }
 
 export function loadGlobalIdentity(): GlobalIdentity | null {

@@ -13,15 +13,12 @@ import {
   generateHardwareKey 
 } from './envelope.js';
 import { execWithEnv } from './exec.js';
-import { loadGlobalIdentity, saveGlobalIdentity } from './identity.js';
+import { loadGlobalIdentity, saveGlobalIdentity, getGlobalVaultPath } from './identity.js';
 import { storeHardwareKey, retrieveHardwareKey } from './hardware-key.js';
 import { Flexoki, log } from '../features/tui/components/theme.js';
 
 const VAULT_FILE = '.env.vault';
 
-/**
- * Ensures the Global Identity exists and returns the GMK.
- */
 export async function resolveGlobalMasterKey(providedPassword?: string): Promise<Uint8Array> {
   const identity = loadGlobalIdentity();
 
@@ -44,7 +41,7 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
     let hwKeyUsed = false;
     
     const stored = await storeHardwareKey('VaultCLI', 'com.vault.global.hardwarekey', hardwareKeyString);
-    if (stored) hwKeyUsed = true;
+    if (stored.success) hwKeyUsed = true;
 
     const { identity: newId, gmk } = await setupGlobalIdentity(password, recoveryKey, hwKeyUsed ? hardwareKeyString : undefined);
     saveGlobalIdentity(newId);
@@ -60,7 +57,6 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
 
     return gmk;
   } else {
-    // Try hardware key first for frictionless login
     if (identity.keks.hardware) {
       const hwKey = await retrieveHardwareKey('VaultCLI', 'com.vault.global.hardwarekey');
       if (hwKey) {
@@ -70,7 +66,6 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
       }
     }
 
-    // Fallback to password
     let password = providedPassword || process.env.VAULT_MASTER_PASSWORD;
     if (!password) {
       const pass = await p.password({
@@ -87,9 +82,6 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
   }
 }
 
-/**
- * Encrypts a payload into a local .env.vault file.
- */
 export async function createLocalVault(plainTextPayload: string, providedPassword?: string) {
   const gmk = await resolveGlobalMasterKey(providedPassword);
   const payload = await generateLocalVault(plainTextPayload, gmk);
@@ -101,24 +93,14 @@ export async function createLocalVault(plainTextPayload: string, providedPasswor
   p.outro(Flexoki.green(`✔ Vault successfully initialized at ${VAULT_FILE}`));
 }
 
-/**
- * Main command execution wrapper.
- */
 export async function runVault(commandArgs: string[]) {
   await _sodium.ready;
 
-  const vaultPath = path.resolve(process.cwd(), VAULT_FILE);
-  if (!fs.existsSync(vaultPath)) {
-    log.error(`${VAULT_FILE} not found in current directory. Run 'vault init' first.`);
-    process.exit(1);
-  }
-
-  let fileContent = fs.readFileSync(vaultPath, 'utf-8');
-  let payload: LocalVaultPayload;
-  try {
-    payload = JSON.parse(fileContent);
-  } catch {
-    log.error(`Invalid ${VAULT_FILE} format.`);
+  const localVaultPath = path.resolve(process.cwd(), VAULT_FILE);
+  const globalVaultPath = getGlobalVaultPath();
+  
+  if (!fs.existsSync(localVaultPath) && !fs.existsSync(globalVaultPath)) {
+    log.error(`No local or global vault found. Run 'vault init' first.`);
     process.exit(1);
   }
 
@@ -130,15 +112,33 @@ export async function runVault(commandArgs: string[]) {
     process.exit(1);
   }
 
-  let decryptedString = '';
-  try {
-    decryptedString = await decryptLocalVault(payload, gmk);
-    _sodium.memzero(gmk);
-  } catch (error: any) {
-    log.error(`Failed to decrypt vault: corrupted payload or mismatched global identity.`);
-    process.exit(1);
+  let combinedEnv: Record<string, string> = {};
+
+  // 1. Load Global Vault (Lowest priority)
+  if (fs.existsSync(globalVaultPath)) {
+    try {
+      const globalContent = fs.readFileSync(globalVaultPath, 'utf-8');
+      const globalPayload: LocalVaultPayload = JSON.parse(globalContent);
+      const globalDecrypted = await decryptLocalVault(globalPayload, gmk);
+      combinedEnv = { ...combinedEnv, ...dotenv.parse(globalDecrypted) };
+    } catch {
+      log.warn(`Failed to decrypt global vault. Skipping global secrets.`);
+    }
   }
 
-  const envVars = dotenv.parse(decryptedString);
-  execWithEnv(envVars, commandArgs);
+  // 2. Load Local Vault (Highest priority)
+  if (fs.existsSync(localVaultPath)) {
+    try {
+      const localContent = fs.readFileSync(localVaultPath, 'utf-8');
+      const localPayload: LocalVaultPayload = JSON.parse(localContent);
+      const localDecrypted = await decryptLocalVault(localPayload, gmk);
+      combinedEnv = { ...combinedEnv, ...dotenv.parse(localDecrypted) };
+    } catch {
+      log.error(`Failed to decrypt project vault.`);
+      process.exit(1);
+    }
+  }
+
+  _sodium.memzero(gmk);
+  execWithEnv(combinedEnv, commandArgs);
 }

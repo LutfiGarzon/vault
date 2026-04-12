@@ -48,9 +48,10 @@ export function runCli() {
   program
     .command('add <key>')
     .alias('-a')
-    .description('Add or update a secret in the local vault interactively')
-    .action((key) => {
-      addCommand(key).catch(err => {
+    .description('Add or update a secret in the local or global vault interactively')
+    .option('-g, --global', 'Target the machine-wide global vault (~/.vault/global.vault)')
+    .action((key, options) => {
+      addCommand(key, options).catch(err => {
         console.error(err);
         process.exit(1);
       });
