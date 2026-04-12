@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Compile Swift Bridge
+        run: swiftc src/core/bridge.swift -o vault-bridge
+
+      - name: Package Release
+        run: |
+          mkdir release
+          cp -r dist release/
+          cp vault-bridge release/
+          cp vault.entitlements release/
+          cp package.json release/
+          cp README.md release/
+          cp vault.1 release/
+          zip -r vault-macos-arm64.zip release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vault-macos-arm64.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
