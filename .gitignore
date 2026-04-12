@@ -16,3 +16,6 @@ test*.swift
 !.pi/agent/AGENTS.md
 CLAUDE.md
 GEMINI.md
+.clinerules
+.clinerules-*
+.cline/
