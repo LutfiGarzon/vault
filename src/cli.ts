@@ -4,6 +4,7 @@ import { shareCommand } from './features/share/share.js';
 import { ingestCommand } from './features/ingest/ingest.js';
 import { addCommand } from './features/add/add.js';
 import { bioCommand } from './features/bio/bio.js';
+import { installCommand } from './features/install/install.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -13,6 +14,16 @@ export function runCli() {
     .name('vault')
     .description('Local secure storage for env variables.')
     .version('1.0.0');
+
+  program
+    .command('install')
+    .description('Automate the compilation and signing of the hardware bridge')
+    .action(() => {
+      installCommand().catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
 
   program
     .command('init')

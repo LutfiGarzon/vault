@@ -8,6 +8,8 @@ vault \- local secure storage and environment variable injector
 .B vault init
 [\-f \fIfile\fR]
 .br
+.B vault install
+.br
 .B vault add
 \fIkey\fR
 .br
@@ -22,6 +24,9 @@ vault \- local secure storage and environment variable injector
 It utilizes \fBlibsodium\fR for hardware-backed (macOS Keychain) envelope encryption. 
 Secrets are decrypted in-memory and injected exclusively into temporary child processes.
 .SH COMMANDS
+.TP
+.B install
+(macOS only) Automatically compiles the hardware bridge and prompts you to select a Developer Identity for signing. This is required for Touch ID functionality.
 .TP
 .B init [\-f \fIfile\fR] [\-g]
 Initialize a project vault (.env.vault) or a machine-wide global vault. 
