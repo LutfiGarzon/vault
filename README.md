@@ -140,3 +140,10 @@ This project is built with a **feature-first modular architecture**. To add a ne
 ---
 **Author**: Lutfi Garzon  
 **License**: Apache-2.0
+
+## › Support the Project
+
+If Vault has helped you secure your workflow, consider supporting its development:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/YOUR_USERNAME)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20me%20on%20GitHub-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/LutfiGarzon)
