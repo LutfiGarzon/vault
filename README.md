@@ -40,12 +40,8 @@ git clone https://github.com/LutfiGarzon/vault.git
 cd vault
 npm install
 
-# Compile the hardware bridge
-swiftc src/core/bridge.swift -o vault-bridge
-
-# Sign the bridge with your Developer Identity
-# (Find identity via: security find-identity -v -p codesigning)
-codesign --entitlements vault.entitlements --force -s "YOUR_IDENTITY" vault-bridge
+# Compile and sign the hardware bridge
+./scripts/setup.sh
 
 # Build TypeScript
 npm run build
