@@ -145,5 +145,6 @@ This project is built with a **feature-first modular architecture**. To add a ne
 
 If Vault has helped you secure your workflow, consider supporting its development:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/YOUR_USERNAME)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20me%20on%20GitHub-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/LutfiGarzon)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/lgarzon)
+[![Deel](https://img.shields.io/badge/Support%20via%20Deel-blue?style=for-the-badge&logo=deel&logoColor=white)](https://app.deel.com/YOUR_DEEP_LINK)
