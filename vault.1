@@ -23,8 +23,11 @@ It utilizes \fBlibsodium\fR for hardware-backed (macOS Keychain) envelope encryp
 Secrets are decrypted in-memory and injected exclusively into temporary child processes.
 .SH COMMANDS
 .TP
-.B init [\-f \fIfile\fR]
-Initialize a new project vault (.env.vault). If no global identity exists on the machine, it triggers the first-time setup (Master Password, Recovery Key, and Touch ID hardware key).
+.B init [\-f \fIfile\fR] [\-g]
+Initialize a project vault (.env.vault) or a machine-wide global vault. 
+.br
+Use \fB\-f\fR to provide a specific file (like .zshrc) and \fB\-g\fR to save selected variables into the global machine identity.
+The tool automatically identifies likely secrets based on keywords (API, KEY, SDK, etc.).
 .TP
 .B add \fIkey\fR (alias: \-a)
 Interactively add or update a secret key in the local vault. 

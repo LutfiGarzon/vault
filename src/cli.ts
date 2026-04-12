@@ -16,10 +16,11 @@ export function runCli() {
 
   program
     .command('init')
-    .description('Initialize a new .env.vault')
-    .option('-f, --file <filename>', 'Headless mode: path to a .env file to encrypt')
+    .description('Initialize a project vault or machine-wide global vault')
+    .option('-f, --file <filename>', 'Path to a .env or shell file to encrypt')
+    .option('-g, --global', 'Target the machine-wide global vault (~/.vault/global.vault)')
     .action((options) => {
-      initCommand(options.file).catch(err => {
+      initCommand(options).catch(err => {
         console.error(err);
         process.exit(1);
       });
