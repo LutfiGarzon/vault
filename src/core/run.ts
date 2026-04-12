@@ -65,11 +65,18 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
     return gmk;
   } else {
     if (identity.keks.hardware) {
+      log.info("Attempting to unlock with Touch ID...");
       const hwKey = await retrieveHardwareKey('VaultCLI', 'com.vault.global.hardwarekey');
       if (hwKey) {
          try {
-           return await unlockGlobalMasterKey(identity, undefined, hwKey);
-         } catch {}
+           const gmk = await unlockGlobalMasterKey(identity, undefined, hwKey);
+           log.success("Global Identity unlocked via biometrics.");
+           return gmk;
+         } catch (err) {
+           log.warn("Biometric key mismatch. Falling back to password.");
+         }
+      } else {
+        log.warn("Biometric authentication skipped or failed. Falling back to password.");
       }
     }
 

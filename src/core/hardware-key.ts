@@ -4,23 +4,25 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { log } from '../features/tui/components/theme.js';
+import { getVaultRoot } from './identity.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Resolves the path to the compiled swift bridge.
- * It looks relative to the current module file (src/core/ or dist/core/).
  */
 function getBridgePath(): string {
-  // Look in the root of the project (two levels up from src/core/ or dist/core/)
-  const rootPath = path.resolve(__dirname, '..', '..', 'vault-bridge');
-  if (fs.existsSync(rootPath)) return rootPath;
-  
-  // Fallback to current working directory
-  const localPath = path.resolve(process.cwd(), 'vault-bridge');
-  if (fs.existsSync(localPath)) return localPath;
-  
+  // 1. Check inside the permanent Vault Home (~/.vault/vault-bridge)
+  const homeBridge = path.join(getVaultRoot(), 'vault-bridge');
+  if (fs.existsSync(homeBridge)) return homeBridge;
+
+  // 2. Check current working directory (for development/setup)
+  const devBridge = path.resolve(process.cwd(), 'vault-bridge');
+  if (fs.existsSync(devBridge)) return devBridge;
+
+  // 3. Fallback to name (if in system path)
   return 'vault-bridge';
 }
 
@@ -44,7 +46,9 @@ export async function retrieveHardwareKey(serviceName: string, accountName: stri
   try {
     const { stdout } = await execFileAsync(getBridgePath(), ['retrieve', serviceName, accountName]);
     return stdout.trim() || null;
-  } catch (error) {
+  } catch (error: any) {
+    log.error(`Hardware Bridge Error: ${error.message}`);
+    if (error.stdout) log.error(`Bridge Output: ${error.stdout}`);
     return null;
   }
 }

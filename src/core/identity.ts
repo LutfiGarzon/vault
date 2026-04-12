@@ -12,14 +12,16 @@ export interface GlobalIdentity {
   };
 }
 
+export function getVaultRoot(): string {
+  return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.vault');
+}
+
 export function getIdentityPath(): string {
-  const root = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.vault');
-  return path.join(root, 'identity.json');
+  return path.join(getVaultRoot(), 'identity.json');
 }
 
 export function getGlobalVaultPath(): string {
-  const root = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.vault');
-  return path.join(root, 'global.vault');
+  return path.join(getVaultRoot(), 'global.vault');
 }
 
 export function loadGlobalIdentity(): GlobalIdentity | null {

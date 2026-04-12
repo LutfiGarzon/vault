@@ -1,6 +1,8 @@
+import fs from 'fs';
+import path from 'path';
 import _sodium from 'libsodium-wrappers';
 import * as p from '@clack/prompts';
-import { loadGlobalIdentity, saveGlobalIdentity } from '../../core/identity.js';
+import { loadGlobalIdentity, saveGlobalIdentity, getVaultRoot } from '../../core/identity.js';
 import { unlockGlobalMasterKey, generateHardwareKey } from '../../core/envelope.js';
 import { storeHardwareKey } from '../../core/hardware-key.js';
 import { log, Flexoki } from '../tui/components/theme.js';
@@ -12,6 +14,24 @@ import { promptForBioUpgrade, confirmBioUpgrade } from './tui.js';
 export async function bioCommand() {
   await _sodium.ready;
   const sodium = _sodium;
+
+  // 0. Ensure the bridge is in the Vault Home (~/.vault/)
+  const vaultRoot = getVaultRoot();
+  const homeBridgePath = path.join(vaultRoot, 'vault-bridge');
+  const localBridgePath = path.resolve(process.cwd(), 'vault-bridge');
+
+  if (!fs.existsSync(homeBridgePath)) {
+    if (fs.existsSync(localBridgePath)) {
+      log.info("Migrating hardware bridge to global vault home...");
+      fs.mkdirSync(vaultRoot, { recursive: true });
+      fs.copyFileSync(localBridgePath, homeBridgePath);
+      fs.chmodSync(homeBridgePath, 0o755);
+    } else {
+      log.error("Hardware bridge not found. Please compile and sign it in the project root first.");
+      log.info("Run: swiftc src/core/bridge.swift -o vault-bridge && codesign ...");
+      process.exit(1);
+    }
+  }
 
   const identity = loadGlobalIdentity();
   if (!identity) {
