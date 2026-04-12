@@ -14,6 +14,12 @@
 
 ---
 
+## › Demo
+
+[VIDEO_URL_HERE]
+
+---
+
 ## › Acknowledgments
 
 The Vault CLI interface is styled with **Flexoki**, an inky color scheme for toolmakers. 
