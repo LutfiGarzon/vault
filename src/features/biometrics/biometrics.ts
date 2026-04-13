@@ -11,7 +11,7 @@ import { promptForBioUpgrade, confirmBioUpgrade } from './tui.js';
 /**
  * Logic to add biometric authentication to an existing global identity.
  */
-export async function bioCommand() {
+export async function biometricsCommand() {
   await _sodium.ready;
   const sodium = _sodium;
 
@@ -27,9 +27,37 @@ export async function bioCommand() {
       fs.copyFileSync(localBridgePath, homeBridgePath);
       fs.chmodSync(homeBridgePath, 0o755);
     } else {
-      log.error("Hardware bridge not found. Please compile and sign it in the project root first.");
-      log.info("Run: swiftc src/core/bridge.swift -o vault-bridge && codesign ...");
-      process.exit(1);
+      // Automatic compile for the "Free plan" / NPM users
+      const { fileURLToPath } = await import('url');
+      const { execSync } = await import('child_process');
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const packageSourcePath = path.resolve(__dirname, '..', '..', '..', 'src', 'core', 'bridge.swift');
+      
+      if (fs.existsSync(packageSourcePath)) {
+        try {
+          // Check if swiftc is installed
+          execSync('which swiftc', { stdio: 'ignore' });
+          
+          log.info("Compiling hardware bridge locally...");
+          fs.mkdirSync(vaultRoot, { recursive: true });
+          
+          // Compile
+          execSync(`swiftc "${packageSourcePath}" -o "${homeBridgePath}"`, { stdio: 'inherit' });
+          fs.chmodSync(homeBridgePath, 0o755);
+          
+          log.success("Bridge compiled successfully.");
+          
+          // It will be ad-hoc signed automatically by ensureSigned() when used.
+        } catch (error) {
+          log.error("Failed to compile hardware bridge.");
+          log.info("You may need to install Xcode Command Line Tools: xcode-select --install");
+          process.exit(1);
+        }
+      } else {
+        log.error("Hardware bridge source not found. Please compile and sign it in the project root first.");
+        log.info("Run: swiftc src/core/bridge.swift -o vault-bridge && codesign ...");
+        process.exit(1);
+      }
     }
   }
 
