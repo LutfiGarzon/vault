@@ -10,8 +10,11 @@ guidelines:
   - "Security First: Decrypted secrets must never touch the disk."
   - "Hardware Integrity: Any changes to src/core/bridge.swift require a re-compile and re-sign of vault-bridge."
   - "Testing: New features must include a corresponding test in the /test directory mirroring the /src structure."
+  - "Versioning & Commits: Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `ci:`, etc.) strictly. `semantic-release` automates version bumps and NPM publishing. Never manually bump `version` in `package.json`."
+  - "Biometrics Compilation: The Swift bridge (`vault-bridge`) is automatically compiled on the user's machine during the `vault eb` (`biometrics`) command using local ad-hoc signing. Maintain this auto-compile flow for NPM distribution."
+  - "Bridge & Entitlements: `src/core/bridge.swift` and `vault.entitlements` must be included in the `files` array of `package.json` to ensure they are shipped in the NPM package for local compilation."
+  - "CI/CD & Publishing: NPM publishing uses OIDC provenance via the `npm-publish` GitHub environment. Main branch is protected; always use Pull Requests."
   - "Native ESM: Always use .js extensions in imports."
-  - "Automated Setup: Use `./scripts/setup.sh` for compiling and signing the hardware bridge in automated environments."
 ---
 # Vault Project Guidelines
 This file ensures that any agent or contributor adheres to the cryptographic and architectural standards of the Vault CLI.
