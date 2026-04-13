@@ -1,73 +1,41 @@
-name: Release and Publish
+name: Release
 
 on:
   push:
     branches:
       - main
 
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   release:
-    name: Create Release and Publish to NPM
+    name: Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed to create GitHub Releases and tags
-      packages: write
-      id-token: write
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Need full history to check for existing tags
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build the CLI
+      - name: Build
         run: npm run build
 
-      - name: Get version from package.json
-        id: package-version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
-      - name: Check if tag exists
-        id: check-tag
-        run: |
-          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
-            echo "TAG_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "TAG_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Create Git Tag
-        if: env.TAG_EXISTS == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ env.VERSION }}"
-          git push origin "v${{ env.VERSION }}"
-
-      - name: Pack the project for release artifact
-        if: env.TAG_EXISTS == 'false'
-        run: npm pack
-
-      - name: Create GitHub Release
-        if: env.TAG_EXISTS == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ env.VERSION }}
-          name: Vault v${{ env.VERSION }}
-          files: "*.tgz"
-          generate_release_notes: true
-
-      - name: Publish to NPM
-        if: env.TAG_EXISTS == 'false'
-        run: npm publish --access public
+      - name: Release and Publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
