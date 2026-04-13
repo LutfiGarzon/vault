@@ -36,8 +36,6 @@
     "libsodium-wrappers-sumo": "^0.8.3"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
     "@types/libsodium-wrappers": "npm:@types/libsodium-wrappers-sumo@^0.7.8",
     "@types/node": "^25.6.0",
     "semantic-release": "^24.2.9",
