@@ -1,13 +1,15 @@
 {
   "name": "@lutfi.gr/vault",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vault like tool cli for local secure storage for env variables.",
   "main": "dist/index.js",
   "bin": {
     "vault": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/core/bridge.swift",
+    "vault.entitlements"
   ],
   "scripts": {
     "test": "vitest run",

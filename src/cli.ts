@@ -3,7 +3,7 @@ import { initCommand } from './features/init/init.js';
 import { shareCommand } from './features/share/share.js';
 import { ingestCommand } from './features/ingest/ingest.js';
 import { addCommand } from './features/add/add.js';
-import { bioCommand } from './features/bio/bio.js';
+import { biometricsCommand } from './features/biometrics/biometrics.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -63,7 +63,7 @@ export function runCli() {
     .alias('eb')
     .description('Enable biometric authentication (Touch ID) for the global identity')
     .action(() => {
-      bioCommand().catch(err => {
+      biometricsCommand().catch(err => {
         console.error(err);
         process.exit(1);
       });
