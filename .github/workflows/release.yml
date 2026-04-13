@@ -1,50 +1,73 @@
-name: Release
+name: Release and Publish
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   release:
-    name: Create Release
-    runs-on: macos-latest
+    name: Create Release and Publish to NPM
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Needed to create GitHub Releases and tags
+      packages: write
+      id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history to check for existing tags
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build TypeScript
+      - name: Build the CLI
         run: npm run build
 
-      - name: Compile Swift Bridge
-        run: swiftc src/core/bridge.swift -o vault-bridge
+      - name: Get version from package.json
+        id: package-version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
-      - name: Package Release
+      - name: Check if tag exists
+        id: check-tag
         run: |
-          mkdir release
-          cp -r dist release/
-          cp vault-bridge release/
-          cp vault.entitlements release/
-          cp package.json release/
-          cp README.md release/
-          cp vault.1 release/
-          zip -r vault-macos-arm64.zip release/
+          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create Git Tag
+        if: env.TAG_EXISTS == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ env.VERSION }}"
+          git push origin "v${{ env.VERSION }}"
+
+      - name: Pack the project for release artifact
+        if: env.TAG_EXISTS == 'false'
+        run: npm pack
 
       - name: Create GitHub Release
+        if: env.TAG_EXISTS == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          files: vault-macos-arm64.zip
-          draft: false
-          prerelease: false
+          tag_name: v${{ env.VERSION }}
+          name: Vault v${{ env.VERSION }}
+          files: "*.tgz"
           generate_release_notes: true
+
+      - name: Publish to NPM
+        if: env.TAG_EXISTS == 'false'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
