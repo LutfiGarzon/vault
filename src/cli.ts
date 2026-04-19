@@ -7,6 +7,7 @@ import { biometricsCommand } from './features/biometrics/biometrics.js';
 import { recoverCommand } from './features/recover/recover.js';
 import { exportCommand } from './features/export/export.js';
 import { cleanCommand } from './features/clean/clean.js';
+import { listCommand } from './features/list/list.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -99,6 +100,19 @@ export function runCli() {
     .option('-d, --dry-run', 'Show what would be cleaned without modifying files')
     .action((options) => {
       cleanCommand(options).catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
+
+  program
+    .command('list')
+    .alias('ls')
+    .description('List keys in the local and global vaults')
+    .option('-s, --show-secrets', 'Reveal the plain-text values of the secrets')
+    .option('-g, --global', 'Only list keys from the global vault')
+    .action((options) => {
+      listCommand(options).catch(err => {
         console.error(err);
         process.exit(1);
       });
