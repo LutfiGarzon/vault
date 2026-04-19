@@ -4,6 +4,7 @@ import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import * as p from '@clack/prompts';
+import _sodium from 'libsodium-wrappers';
 
 const VAULT_FILE = '.env.vault';
 const ENV_FILE = '.env';
@@ -30,6 +31,7 @@ export async function exportCommand() {
 
   try {
     const plainTextPayload = await decryptLocalVault(payload, gmk);
+    _sodium.memzero(gmk);
     
     if (fs.existsSync(envPath)) {
       log.warn(`${ENV_FILE} already exists. Overwriting...`);

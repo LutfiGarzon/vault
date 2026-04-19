@@ -6,6 +6,7 @@ import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import * as p from '@clack/prompts';
+import _sodium from 'libsodium-wrappers';
 
 const ENV_FILE = '.env';
 const VAULT_FILE = '.env.vault';
@@ -50,6 +51,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
       const gmk = await resolveGlobalMasterKey();
       const payload: LocalVaultPayload = JSON.parse(fs.readFileSync(vaultPath, 'utf-8'));
       const plainTextVault = await decryptLocalVault(payload, gmk);
+      _sodium.memzero(gmk);
       vaultedKeys = Object.keys(dotenv.parse(plainTextVault));
     } catch (err: any) {
       log.error(`Failed to read vault for smart-cleaning: ${err.message}`);
@@ -76,7 +78,8 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
   const newEnvContent = keptLines.join('\n').trim();
 
   // For sensitive files like .zshrc, we NEVER want to auto-delete the file
-  const isSensitiveFile = targetFile!.includes('rc') || targetFile!.includes('profile');
+  const baseName = path.basename(targetFile!);
+  const isSensitiveFile = baseName.endsWith('rc') || baseName.endsWith('profile');
   
   const hasRemainingVars = keptLines.some(line => {
     const t = line.trim();
