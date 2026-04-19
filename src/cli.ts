@@ -98,6 +98,8 @@ export function runCli() {
     .command('clean')
     .description('Securely delete the plain-text .env file to prevent accidental commits')
     .option('-d, --dry-run', 'Show what would be cleaned without modifying files')
+    .option('-g, --global', 'Clean secrets from a global config file (e.g. .zshrc) using the Global Vault')
+    .option('-f, --file <filename>', 'Path to the file to clean')
     .action((options) => {
       cleanCommand(options).catch(err => {
         console.error(err);

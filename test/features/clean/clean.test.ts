@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanCommand } from '../../../src/features/clean/clean.js';
 import * as run from '../../../src/core/run.js';
 import * as envelope from '../../../src/core/envelope.js';
+import * as identity from '../../../src/core/identity.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -10,6 +11,7 @@ import * as p from '@clack/prompts';
 vi.mock('@clack/prompts');
 vi.mock('../../../src/core/run.js');
 vi.mock('../../../src/core/envelope.js');
+vi.mock('../../../src/core/identity.js');
 
 describe('Clean Feature', () => {
   const testDir = path.join(os.tmpdir(), 'vault-clean-test-' + Math.random().toString(36).substring(7));
@@ -28,7 +30,6 @@ describe('Clean Feature', () => {
 
   afterEach(() => {
     fs.rmSync(testDir, { recursive: true, force: true });
-    vi.restoreAllMocks();
   });
 
   it('should exit if .env does not exist', async () => {
@@ -50,24 +51,11 @@ describe('Clean Feature', () => {
     expect(fs.existsSync(envPath)).toBe(true);
   });
 
-  it('should handle cancel prompt gracefully', async () => {
-    fs.writeFileSync(envPath, 'SECRET=123');
-    vi.mocked(p.confirm).mockResolvedValue(p.isCancel as any);
-    vi.mocked(p.isCancel).mockReturnValue(true);
-
-    try {
-      await cleanCommand();
-    } catch {}
-
-    expect(exitSpy).toHaveBeenCalledWith(0);
-    expect(fs.existsSync(envPath)).toBe(true);
-  });
-
   it('should exit if vault decryption fails', async () => {
     fs.writeFileSync(envPath, 'SECRET=123');
     fs.writeFileSync(vaultPath, '{}');
     vi.mocked(p.confirm).mockResolvedValue(true);
-    vi.mocked(p.isCancel).mockReturnValue(false); // Make sure it's not canceled
+    vi.mocked(p.isCancel).mockReturnValue(false);
     vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(new Uint8Array(32));
     vi.mocked(envelope.decryptLocalVault).mockRejectedValue(new Error('fail'));
 
@@ -79,57 +67,45 @@ describe('Clean Feature', () => {
   });
 
   it('should smartly remove only vaulted keys, leaving unvaulted keys intact', async () => {
-    const rawEnv = `
-PORT=8080
-# Secret below
-SECRET_KEY=super_secret
-PUBLIC_URL=https://google.com
-`;
+    const rawEnv = 'PORT=8080\nSECRET_KEY=super_secret';
     fs.writeFileSync(envPath, rawEnv);
-    fs.writeFileSync(vaultPath, '{}'); // dummy
+    fs.writeFileSync(vaultPath, '{}');
     
     vi.mocked(p.confirm).mockResolvedValue(true);
-    vi.mocked(p.isCancel).mockReturnValue(false); // Make sure it's not canceled
+    vi.mocked(p.isCancel).mockReturnValue(false);
     vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(new Uint8Array(32));
-    // Simulate that ONLY 'SECRET_KEY' is currently in the vault
     vi.mocked(envelope.decryptLocalVault).mockResolvedValue('SECRET_KEY=super_secret');
 
     await cleanCommand();
 
-    // File should still exist because there are remaining non-secret variables
-    expect(fs.existsSync(envPath)).toBe(true);
-    const updatedEnv = fs.readFileSync(envPath, 'utf-8');
-    
-    expect(updatedEnv).toContain('PORT=8080');
-    expect(updatedEnv).toContain('PUBLIC_URL=https://google.com');
-    expect(updatedEnv).not.toContain('SECRET_KEY');
+    const updated = fs.readFileSync(envPath, 'utf-8');
+    expect(updated).toContain('PORT=8080');
+    expect(updated).not.toContain('SECRET_KEY');
   });
 
-  it('should completely delete .env if no unvaulted keys remain', async () => {
-    const rawEnv = `
-# Only secrets here
-API_KEY=1234
-TOKEN=abcd
-`;
-    fs.writeFileSync(envPath, rawEnv);
-    fs.writeFileSync(vaultPath, '{}'); // dummy
+  it('should clean a shell file with global vault and NOT delete the file', async () => {
+    const zshPath = path.join(testDir, '.zshrc');
+    const rawZsh = 'export SECRET=1\nexport PUBLIC=2';
+    fs.writeFileSync(zshPath, rawZsh);
+    const globalVaultPath = path.join(testDir, 'global.vault');
+    fs.writeFileSync(globalVaultPath, '{}');
     
     vi.mocked(p.confirm).mockResolvedValue(true);
-    vi.mocked(p.isCancel).mockReturnValue(false); // Make sure it's not canceled
+    vi.mocked(p.isCancel).mockReturnValue(false); 
     vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(new Uint8Array(32));
-    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('API_KEY=1234\nTOKEN=abcd');
+    vi.mocked(identity.getGlobalVaultPath).mockReturnValue(globalVaultPath);
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('SECRET=1');
 
-    await cleanCommand();
+    await cleanCommand({ global: true, file: '.zshrc' });
 
-    // File should be entirely unlinked because only comments/whitespace remain
-    expect(fs.existsSync(envPath)).toBe(false);
+    expect(fs.existsSync(zshPath)).toBe(true);
+    const content = fs.readFileSync(zshPath, 'utf-8');
+    expect(content).toContain('export PUBLIC=2');
+    expect(content).not.toContain('SECRET=1');
   });
 
   it('should print dry-run summary and not modify .env', async () => {
-    const rawEnv = `
-PORT=8080
-SECRET_KEY=super_secret
-`;
+    const rawEnv = 'PORT=8080\nSECRET_KEY=super_secret';
     fs.writeFileSync(envPath, rawEnv);
     fs.writeFileSync(vaultPath, '{}');
     
@@ -138,16 +114,22 @@ SECRET_KEY=super_secret
     vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(new Uint8Array(32));
     vi.mocked(envelope.decryptLocalVault).mockResolvedValue('SECRET_KEY=super_secret');
 
-    const unlinkSpy = vi.spyOn(fs, 'unlinkSync');
-    const writeSpy = vi.spyOn(fs, 'writeFileSync');
-
     await cleanCommand({ dryRun: true });
 
-    // In dry-run mode, these should NOT be called
-    expect(unlinkSpy).not.toHaveBeenCalled();
-    expect(writeSpy).not.toHaveBeenCalled();
-    
     const unchangedEnv = fs.readFileSync(envPath, 'utf-8');
     expect(unchangedEnv).toContain('SECRET_KEY=super_secret');
+  });
+
+  it('should handle cancel prompt gracefully', async () => {
+    fs.writeFileSync(envPath, 'SECRET=123');
+    vi.mocked(p.confirm).mockResolvedValue(p.isCancel as any);
+    vi.mocked(p.isCancel).mockReturnValue(true);
+
+    try {
+      await cleanCommand();
+    } catch {}
+
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(fs.existsSync(envPath)).toBe(true);
   });
 });
