@@ -4,9 +4,17 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    // Ensure .js imports are handled correctly in TypeScript files
     alias: [
       { find: /^(.*)\.js$/, replacement: '$1' }
-    ]
+    ],
+    coverage: {
+      provider: 'v8',
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80
+      }
+    }
   },
 });

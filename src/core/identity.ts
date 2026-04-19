@@ -7,7 +7,6 @@ export interface GlobalIdentity {
   salt: string;
   keks: {
     password: EncryptedDEK;
-    recovery: EncryptedDEK;
     hardware?: EncryptedDEK;
   };
 }
