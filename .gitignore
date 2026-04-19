@@ -19,3 +19,7 @@ GEMINI.md
 .clinerules
 .clinerules-*
 .cline/
+
+# Coverage reports
+coverage/
+
