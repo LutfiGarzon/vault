@@ -16,7 +16,17 @@ vault \- local secure storage and environment variable injector
 .B vault share
 .br
 .B vault ingest
-\fIfile\fR
+\fIfile\fR [\-d]
+.br
+.B vault list
+[\-s] [\-g]
+.br
+.B vault clean
+[\-d] [\-g] [\-f \fIfile\fR]
+.br
+.B vault export
+.br
+.B vault recover
 .SH DESCRIPTION
 \fBvault\fR is a local, open-source CLI tool designed to eliminate plain-text .env files. 
 It utilizes \fBlibsodium\fR for hardware-backed (macOS Keychain) envelope encryption. 
@@ -33,14 +43,26 @@ Interactively add or update a secret key in the local vault.
 Use \fB\-g\fR or \fB\-\-global\fR to target the machine-wide vault (\fI~/.vault/global.vault\fR).
 Values are entered via a hidden prompt if not provided as an argument.
 .TP
+.B list (alias: ls) [\-s] [\-g]
+List all keys stored in the local and global vaults. Values are masked by default for privacy. Use \fB\-s\fR or \fB\-\-show-secrets\fR to reveal plain-text values.
+.TP
+.B clean [\-d] [\-g] [\-f \fIfile\fR]
+Intelligently remove vaulted secrets from a plain-text file (defaulting to .env). It preserves non-secret variables (like PORT or NODE_ENV). Use \fB\-d\fR for a dry-run. Use \fB\-g\fR and \fB\-f\fR to clean secrets from global shell files like .zshrc.
+.TP
+.B export
+Decrypt the current local vault and write it back to a plain-text .env file.
+.TP
+.B recover
+Recover your Global Identity on a new machine using your printed Recovery Key (vlt-rcv-...).
+.TP
 .B enable-biometrics (alias: eb)
 Enable biometric authentication (Touch ID) for the global machine identity. This allows you to upgrade an existing password-based identity to use fingerprint authentication.
 .TP
 .B share
 Export current project secrets to a transport-ready file (\fIshared.vault\fR) encrypted with a One-Time Password (OTP).
 .TP
-.B ingest \fIfile\fR
-Decrypt a transport file using an OTP and merge it into the local project vault. The transport file is automatically deleted after a successful ingest.
+.B ingest \fIfile\fR [\-d]
+Decrypt a transport file using an OTP and merge it into the local project vault. The transport file is automatically deleted after a successful ingest. Use \fB\-d\fR to preview the merge without destroying the source file.
 .TP
 .B [command...]
 Execute the specified command with decrypted environment variables injected into the process. If no command is provided, it spawns a temporary subshell ($SHELL).

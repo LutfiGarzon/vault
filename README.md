@@ -73,7 +73,13 @@ Upgrade your machine identity from password-only to biometrics:
 vault eb
 ```
 
-### 4. Add/Update a secret
+### 4. Recovery (Identity Restoration)
+If you lose your computer, you can restore your Global Identity on a new machine using your Recovery Key:
+```bash
+vault recover
+```
+
+### 5. Add/Update a secret
 Add a variable to the local project or global vault:
 ```bash
 # Interactively (securely hidden)
@@ -81,12 +87,37 @@ vault add API_KEY
 
 # Machine-wide global secret
 vault add NPM_TOKEN --global
-
-# Non-Interactive (useful for agents)
-vault add API_KEY "my-secret-value"
 ```
 
-### 5. Execute with secrets
+### 6. List Keys
+See what secrets are currently available in your environment (values are masked by default):
+```bash
+vault ls
+
+# Reveal plain-text values
+vault ls --show-secrets
+```
+
+### 7. Smart Clean
+Securely strip secrets from your `.env` file while keeping public config (like `PORT`) intact:
+```bash
+# Preview changes first
+vault clean --dry-run
+
+# Execute clean
+vault clean
+
+# Clean global files (e.g., .zshrc)
+vault clean -g -f ~/.zshrc
+```
+
+### 8. Export Vault
+Eject secrets from `.env.vault` back into a plain-text `.env` file:
+```bash
+vault export
+```
+
+### 9. Execute with secrets
 Inject variables into `process.env` (Node), `os.environ` (Python), or any child process. This automatically merges **Global** + **Project** secrets:
 ```bash
 # Node.js
@@ -94,12 +125,9 @@ vault npm start
 
 # Python
 vault python app.py
-
-# Flutter (using FVM)
-vault fvm flutter run
 ```
 
-### 6. Secure Subshell
+### 10. Secure Subshell
 Open a new shell session where your secrets are available to every command you type:
 ```bash
 vault
