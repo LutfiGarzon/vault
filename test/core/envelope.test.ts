@@ -21,7 +21,6 @@ describe('Envelope Core', () => {
     
     expect(identity.salt).toBeDefined();
     expect(identity.keks.password).toBeDefined();
-    expect(identity.keks.recovery).toBeDefined();
     
     const unlockedGmk = await unlockGlobalMasterKey(identity, password);
     expect(unlockedGmk).toEqual(gmk);

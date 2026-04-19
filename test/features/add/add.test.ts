@@ -23,9 +23,7 @@ describe('Add Feature', () => {
     await _sodium.ready;
     if (!fs.existsSync(testDir)) fs.mkdirSync(testDir, { recursive: true });
     cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(testDir);
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code) => {
-      throw new Error(`process.exit called with ${code}`);
-    });
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
   });
 
   afterEach(() => {
@@ -33,9 +31,14 @@ describe('Add Feature', () => {
     vi.restoreAllMocks();
   });
 
+  it('should exit if vault does not exist', async () => {
+    try {
+      await addCommand('KEY', 'VAL', {});
+    } catch {}
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
   it('should add a key to a new local vault', async () => {
-    // In this case, addCommand expects the vault to exist if not global.
-    // So let's create a dummy vault first.
     const gmk = new Uint8Array(32);
     vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(gmk);
     
@@ -82,5 +85,16 @@ describe('Add Feature', () => {
         'PROMPTED_KEY=prompted_value',
         gmk
     );
+  });
+
+  it('should handle gmk resolution failure', async () => {
+    fs.writeFileSync(vaultPath, JSON.stringify({}));
+    vi.mocked(run.resolveGlobalMasterKey).mockRejectedValue(new Error('fail'));
+
+    try {
+      await addCommand('KEY', 'VAL', {});
+    } catch {}
+    
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });

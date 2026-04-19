@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/libsodium-wrappers": "npm:@types/libsodium-wrappers-sumo@^0.7.8",
     "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "semantic-release": "^24.2.9",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"

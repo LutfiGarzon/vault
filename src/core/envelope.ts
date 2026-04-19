@@ -49,27 +49,19 @@ export async function unlockGlobalMasterKey(
   throw new Error('Unable to unlock global identity');
 }
 
-export async function setupGlobalIdentity(
+export async function reconstructGlobalIdentity(
+  gmk: Uint8Array,
   masterPassword: string,
-  recoveryKey: string,
   hardwareKey?: string
 ): Promise<{ identity: GlobalIdentity, gmk: Uint8Array }> {
   await _sodium.ready;
   const sodium = _sodium;
-
-  const gmk = sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES);
   const salt = sodium.randombytes_buf(sodium.crypto_pwhash_SALTBYTES);
 
-  // KEK 1: Password
   const pwdKey = await deriveKey(masterPassword, salt);
   const pwdNonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const pwdCiphertext = sodium.crypto_secretbox_easy(gmk, pwdNonce, pwdKey);
   sodium.memzero(pwdKey);
-
-  // KEK 2: Recovery
-  const recKeyBytes = sodium.crypto_generichash(sodium.crypto_secretbox_KEYBYTES, recoveryKey, new Uint8Array(0));
-  const recNonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-  const recCiphertext = sodium.crypto_secretbox_easy(gmk, recNonce, recKeyBytes);
 
   const identity: GlobalIdentity = {
     salt: sodium.to_hex(salt),
@@ -77,10 +69,6 @@ export async function setupGlobalIdentity(
       password: {
         nonce: sodium.to_hex(pwdNonce),
         ciphertext: sodium.to_hex(pwdCiphertext)
-      },
-      recovery: {
-        nonce: sodium.to_hex(recNonce),
-        ciphertext: sodium.to_hex(recCiphertext)
       }
     }
   };
@@ -96,6 +84,15 @@ export async function setupGlobalIdentity(
   }
 
   return { identity, gmk };
+}
+
+export async function setupGlobalIdentity(
+  masterPassword: string,
+  recoveryKey: string,
+  hardwareKey?: string
+): Promise<{ identity: GlobalIdentity, gmk: Uint8Array }> {
+  const gmk = await deriveGmkFromRecoveryKey(recoveryKey);
+  return reconstructGlobalIdentity(gmk, masterPassword, hardwareKey);
 }
 
 export async function generateLocalVault(plaintext: string, gmk: Uint8Array): Promise<LocalVaultPayload> {
@@ -140,8 +137,14 @@ export async function decryptLocalVault(payload: LocalVaultPayload, gmk: Uint8Ar
 
 export function generateRecoveryKey(): string {
   const sodium = _sodium;
-  const randomBytes = sodium.randombytes_buf(16);
-  return `vlt-rcv-${sodium.to_hex(randomBytes)}`;
+  const randomBytes = sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES);
+  return `vlt-rcv-${sodium.to_base64(randomBytes, sodium.base64_variants.URLSAFE_NO_PADDING)}`;
+}
+
+export async function deriveGmkFromRecoveryKey(recoveryKey: string): Promise<Uint8Array> {
+  await _sodium.ready;
+  const b64 = recoveryKey.replace('vlt-rcv-', '');
+  return _sodium.from_base64(b64, _sodium.base64_variants.URLSAFE_NO_PADDING);
 }
 
 export function generateHardwareKey(): string {
@@ -149,3 +152,4 @@ export function generateHardwareKey(): string {
   const randomBytes = sodium.randombytes_buf(32);
   return sodium.to_hex(randomBytes);
 }
+

@@ -156,3 +156,9 @@ export async function runVault(commandArgs: string[]) {
   await execWithEnv(combinedEnv, commandArgs, gmk);
   _sodium.memzero(gmk);
 }
+export async function recoverGlobalIdentity(recoveryKey: string, newPassword: string) {
+  const { deriveGmkFromRecoveryKey, reconstructGlobalIdentity } = await import('./envelope.js');
+  const gmk = await deriveGmkFromRecoveryKey(recoveryKey);
+  const { identity: newIdentity } = await reconstructGlobalIdentity(gmk, newPassword);
+  saveGlobalIdentity(newIdentity);
+}
