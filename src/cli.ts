@@ -8,6 +8,7 @@ import { recoverCommand } from './features/recover/recover.js';
 import { exportCommand } from './features/export/export.js';
 import { cleanCommand } from './features/clean/clean.js';
 import { listCommand } from './features/list/list.js';
+import { runOidcCommand } from './features/oidc/index.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -115,6 +116,16 @@ export function runCli() {
     .option('-g, --global', 'Only list keys from the global vault')
     .action((options) => {
       listCommand(options).catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
+
+  program
+    .command('oidc')
+    .description('Setup OpenID Connect trust policies for CI/CD environments')
+    .action(() => {
+      runOidcCommand().catch(err => {
         console.error(err);
         process.exit(1);
       });
