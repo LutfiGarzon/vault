@@ -3,16 +3,17 @@ import path from 'path';
 import * as p from '@clack/prompts';
 import { decryptPayload, EncryptedPayload, deriveKey } from '../../core/crypto.js';
 import { createLocalVault } from '../../core/run.js';
+import { getLocalVaultPath, getLocalVaultFile } from '../../core/vault-file.js';
 import { Flexoki, log } from '../tui/components/theme.js';
 import { promptIngestOtp, confirmOverwrite } from './tui.js';
 import _sodium from 'libsodium-wrappers';
 
-const VAULT_FILE = '.env.vault';
-
-export async function ingestCommand(filepath: string, options: { dryRun?: boolean } = {}) {
+export async function ingestCommand(filepath: string, options: { dryRun?: boolean; env?: string } = {}) {
   await _sodium.ready;
   const sodium = _sodium;
   const isDryRun = !!options.dryRun;
+  const vaultFile = getLocalVaultFile(options.env);
+  const vaultPath = getLocalVaultPath(options.env);
 
   const ingestPath = path.resolve(process.cwd(), filepath);
   if (!fs.existsSync(ingestPath)) {
@@ -50,26 +51,25 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
     process.exit(1);
   }
 
-  const vaultPath = path.resolve(process.cwd(), VAULT_FILE);
   if (!fs.existsSync(vaultPath)) {
     if (isDryRun) {
-      log.info(Flexoki.yellow(`! [DRY-RUN] Would create a NEW local ${VAULT_FILE} from ingested secrets.`));
+      log.info(Flexoki.yellow(`! [DRY-RUN] Would create a NEW local ${vaultFile} from ingested secrets.`));
     } else {
-      log.info(`Local ${VAULT_FILE} not found. Creating a new one from ingested secrets...`);
-      await createLocalVault(plainTextPayload);
+      log.info(`Local ${vaultFile} not found. Creating a new one from ingested secrets...`);
+      await createLocalVault(plainTextPayload, undefined, options.env);
     }
   } else {
-    log.warn(`A local ${VAULT_FILE} already exists.`);
+    log.warn(`A local ${vaultFile} already exists.`);
     
     if (isDryRun) {
-      log.info(Flexoki.yellow(`! [DRY-RUN] Would prompt to overwrite existing ${VAULT_FILE} with ingested secrets.`));
+      log.info(Flexoki.yellow(`! [DRY-RUN] Would prompt to overwrite existing ${vaultFile} with ingested secrets.`));
     } else {
       const confirm = await confirmOverwrite();
       if (!confirm) {
         log.info('Ingest cancelled. Transport file was NOT destroyed.');
         process.exit(0);
       }
-      await createLocalVault(plainTextPayload);
+      await createLocalVault(plainTextPayload, undefined, options.env);
     }
   }
 

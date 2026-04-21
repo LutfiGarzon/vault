@@ -4,14 +4,14 @@ import dotenv from 'dotenv';
 import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
+import { getLocalVaultPath } from '../../core/vault-file.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import * as p from '@clack/prompts';
 import _sodium from 'libsodium-wrappers';
 
 const ENV_FILE = '.env';
-const VAULT_FILE = '.env.vault';
 
-export async function cleanCommand(options: { dryRun?: boolean; global?: boolean; file?: string } = {}) {
+export async function cleanCommand(options: { dryRun?: boolean; global?: boolean; file?: string; env?: string } = {}) {
   const isDryRun = !!options.dryRun;
   const isGlobal = !!options.global;
   
@@ -23,7 +23,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
   }
 
   const envPath = path.resolve(process.cwd(), targetFile!);
-  const vaultPath = isGlobal ? getGlobalVaultPath() : path.resolve(process.cwd(), VAULT_FILE);
+  const vaultPath = isGlobal ? getGlobalVaultPath(options.env) : getLocalVaultPath(options.env);
 
   if (!fs.existsSync(envPath)) {
     log.error(`${targetFile} not found.`);
@@ -48,7 +48,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
 
   if (fs.existsSync(vaultPath)) {
     try {
-      const gmk = await resolveGlobalMasterKey();
+      const gmk = await resolveGlobalMasterKey(undefined, options.env);
       const payload: LocalVaultPayload = JSON.parse(fs.readFileSync(vaultPath, 'utf-8'));
       const plainTextVault = await decryptLocalVault(payload, gmk);
       _sodium.memzero(gmk);
