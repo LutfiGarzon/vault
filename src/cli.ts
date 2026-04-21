@@ -10,6 +10,7 @@ import { cleanCommand } from './features/clean/clean.js';
 import { listCommand } from './features/list/list.js';
 import { runOidcCommand } from './features/oidc/index.js';
 import { runCiCommand } from './features/ci/ci.js';
+import { syncCommand } from './features/sync/index.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -150,6 +151,17 @@ export function runCli() {
     .action((commandArgs: string[]) => {
       const globalOpts = program.opts();
       runCiCommand(commandArgs, { env: globalOpts.env }).catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
+
+  program
+    .command('sync')
+    .description('Sync a master key from cloud KMS into the local Secure Enclave')
+    .action(() => {
+      const globalOpts = program.opts();
+      syncCommand({ env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
