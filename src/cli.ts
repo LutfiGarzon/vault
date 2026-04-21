@@ -9,6 +9,7 @@ import { exportCommand } from './features/export/export.js';
 import { cleanCommand } from './features/clean/clean.js';
 import { listCommand } from './features/list/list.js';
 import { runOidcCommand } from './features/oidc/index.js';
+import { runCiCommand } from './features/ci/ci.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
@@ -126,6 +127,18 @@ export function runCli() {
     .description('Setup OpenID Connect trust policies for CI/CD environments')
     .action(() => {
       runOidcCommand().catch(err => {
+        console.error(err);
+        process.exit(1);
+      });
+    });
+
+  program
+    .command('ci')
+    .description('Headless execution runner for CI environments utilizing OIDC to decrypt the vault')
+    .argument('<command...>', 'Command to execute inside CI')
+    .passThroughOptions()
+    .action((commandArgs: string[]) => {
+      runCiCommand(commandArgs).catch(err => {
         console.error(err);
         process.exit(1);
       });
