@@ -18,23 +18,25 @@ import { storeHardwareKey, retrieveHardwareKey } from './hardware-key.js';
 import { createSession, resolveSession, destroySession } from './session.js';
 import { Flexoki, log } from '../features/tui/components/theme.js';
 
-const VAULT_FILE = '.env.vault';
+import { getLocalVaultFile, getLocalVaultPath } from './vault-file.js';
 
-export async function resolveGlobalMasterKey(providedPassword?: string): Promise<Uint8Array> {
+export async function resolveGlobalMasterKey(providedPassword?: string, env?: string): Promise<Uint8Array> {
   // 1. Check for Active Session (Agent Mode / Recursive call)
   if (process.env.VAULT_SESSION_TOKEN) {
     const sessionGmk = await resolveSession(process.env.VAULT_SESSION_TOKEN);
     if (sessionGmk) return sessionGmk;
   }
 
-  const identity = loadGlobalIdentity();
+  const identity = loadGlobalIdentity(env);
+  const hardwareIdentifier = env ? `com.vault.masterkey.${env}` : 'com.vault.global.hardwarekey';
+  const label = env ? `Global Vault Identity (${env})` : `Global Vault Identity`;
 
   if (!identity) {
-    console.log(`\n` + Flexoki.purple(`◈ Initializing Global Vault Identity for the first time...`));
+    console.log(`\n` + Flexoki.purple(`◈ Initializing ${label} for the first time...`));
     let password = providedPassword;
     if (!password) {
       const pass = await p.password({
-        message: Flexoki.tx('Set a Master Password for your Global Identity:'),
+        message: Flexoki.tx(`Set a Master Password for your ${label}:`),
         validate: (value) => {
           if (!value || value.length < 8) return Flexoki.red('Password must be at least 8 characters long.');
         }
@@ -47,14 +49,14 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
     const hardwareKeyString = generateHardwareKey();
     let hwKeyUsed = false;
     
-    const stored = await storeHardwareKey('VaultCLI', 'com.vault.global.hardwarekey', hardwareKeyString);
+    const stored = await storeHardwareKey('VaultCLI', hardwareIdentifier, hardwareKeyString);
     if (stored.success) hwKeyUsed = true;
 
     const { identity: newId, gmk } = await setupGlobalIdentity(password, recoveryKey, hwKeyUsed ? hardwareKeyString : undefined);
-    saveGlobalIdentity(newId);
+    saveGlobalIdentity(newId, env);
 
     console.log(`\n${Flexoki.red('========================================')}`);
-    console.log(Flexoki.red('CRITICAL: SAVE YOUR GLOBAL RECOVERY KEY'));
+    console.log(Flexoki.red(`CRITICAL: SAVE YOUR RECOVERY KEY ${env ? `(${env}) ` : ''}`));
     console.log(`${Flexoki.red('========================================')}`);
     console.log(`${Flexoki.yellow(recoveryKey)}\n`);
     console.log(Flexoki.tx(`This key cannot be recovered. You will need this key if you lose your password.`));
@@ -66,11 +68,11 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
   } else {
     if (identity.keks.hardware) {
       log.info("Attempting to unlock with Touch ID...");
-      const hwKey = await retrieveHardwareKey('VaultCLI', 'com.vault.global.hardwarekey');
+      const hwKey = await retrieveHardwareKey('VaultCLI', hardwareIdentifier);
       if (hwKey) {
          try {
            const gmk = await unlockGlobalMasterKey(identity, undefined, hwKey);
-           log.success("Global Identity unlocked via biometrics.");
+           log.success(`${label} unlocked via biometrics.`);
            return gmk;
          } catch (err) {
            log.warn("Biometric key mismatch. Falling back to password.");
@@ -83,7 +85,7 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
     let password = providedPassword || process.env.VAULT_MASTER_PASSWORD;
     if (!password) {
       const pass = await p.password({
-        message: Flexoki.tx('Enter Master Password to unlock Global Identity:'),
+        message: Flexoki.tx(`Enter Master Password to unlock ${label}:`),
         validate: (value) => {
           if (!value || value.length < 8) return Flexoki.red('Password must be at least 8 characters long.');
         }
@@ -96,22 +98,22 @@ export async function resolveGlobalMasterKey(providedPassword?: string): Promise
   }
 }
 
-export async function createLocalVault(plainTextPayload: string, providedPassword?: string) {
-  const gmk = await resolveGlobalMasterKey(providedPassword);
+export async function createLocalVault(plainTextPayload: string, providedPassword?: string, env?: string) {
+  const gmk = await resolveGlobalMasterKey(providedPassword, env);
   const payload = await generateLocalVault(plainTextPayload, gmk);
 
-  const vaultPath = path.resolve(process.cwd(), VAULT_FILE);
+  const vaultPath = getLocalVaultPath(env);
   fs.writeFileSync(vaultPath, JSON.stringify(payload, null, 2), 'utf-8');
 
   _sodium.memzero(gmk);
-  p.outro(Flexoki.green(`✔ Vault successfully initialized at ${VAULT_FILE}`));
+  p.outro(Flexoki.green(`✔ Vault successfully initialized at ${getLocalVaultFile(env)}`));
 }
 
-export async function runVault(commandArgs: string[]) {
+export async function runVault(commandArgs: string[], env?: string) {
   await _sodium.ready;
 
-  const localVaultPath = path.resolve(process.cwd(), VAULT_FILE);
-  const globalVaultPath = getGlobalVaultPath();
+  const localVaultPath = getLocalVaultPath(env);
+  const globalVaultPath = getGlobalVaultPath(env);
   
   if (!fs.existsSync(localVaultPath) && !fs.existsSync(globalVaultPath)) {
     log.error(`No local or global vault found. Run 'vault init' first.`);
@@ -120,7 +122,7 @@ export async function runVault(commandArgs: string[]) {
 
   let gmk: Uint8Array;
   try {
-    gmk = await resolveGlobalMasterKey();
+    gmk = await resolveGlobalMasterKey(undefined, env);
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
