@@ -16,6 +16,7 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
   if (!isGlobal && !fs.existsSync(vaultPath)) {
     log.error(`${getLocalVaultFile(options.env)} not found. Run 'vault init' first or use --global.`);
     process.exit(1);
+    return;
   }
 
   const value = valueArg || await promptForValue(key);
@@ -26,6 +27,7 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
+    return;
   }
 
   let envVars: Record<string, string> = {};
@@ -39,6 +41,7 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
     } catch {
       log.error(`Invalid vault format at ${vaultPath}.`);
       process.exit(1);
+      return;
     }
   }
 

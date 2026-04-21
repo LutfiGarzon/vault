@@ -4,9 +4,12 @@ export function generateAzureTemplate(ciProvider: string, repo: string, branch: 
   if (env === 'prod') targetBranch = 'main';
   else if (env === 'qa') targetBranch = 'release/*';
 
-  if (ciProvider.toLowerCase() === 'github' || ciProvider === 'GitHub Actions') {
+  const normalizedCi = ciProvider.toLowerCase();
+  const envName = envSuffix.replace(/-/g, '_');
+
+  if (normalizedCi === 'github' || normalizedCi === 'github actions') {
     return `
-resource "azuread_application_federated_identity_credential" "github${envSuffix.replace(/-/g, '_')}" {
+resource "azuread_application_federated_identity_credential" "github${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
   description           = "Deployments for GitHub Actions"
@@ -16,5 +19,19 @@ resource "azuread_application_federated_identity_credential" "github${envSuffix.
 }
 `;
   }
-  return '';
+
+  if (normalizedCi === 'gitlab' || normalizedCi === 'gitlab ci') {
+    return `
+resource "azuread_application_federated_identity_credential" "gitlab${envName}" {
+  application_object_id = azuread_application.vault.object_id
+  display_name          = "vault-ci-role${envSuffix}"
+  description           = "Deployments for GitLab CI"
+  audiences             = ["https://gitlab.com"]
+  issuer                = "https://gitlab.com"
+  subject               = "project_path:${repo}:ref_type:branch:ref:${targetBranch}"
+}
+`;
+  }
+
+  throw new Error(`Unsupported CI provider: ${ciProvider}. Supported: github, gitlab.`);
 }

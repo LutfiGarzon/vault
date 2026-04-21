@@ -77,7 +77,8 @@ export function runCli() {
     .alias('eb')
     .description('Enable biometric authentication (Touch ID) for the global identity')
     .action(() => {
-      biometricsCommand().catch(err => {
+      const globalOpts = program.opts();
+      biometricsCommand({ env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });

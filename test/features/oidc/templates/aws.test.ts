@@ -20,4 +20,15 @@ describe('AWS OIDC Template', () => {
     expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/release/*');
     expect(tf).toContain('vault-ci-role-qa');
   });
+
+  it('should generate terraform with gitlab oidc provider', () => {
+    const tf = generateAwsTemplate('gitlab', 'mygroup/my-project', 'main');
+    expect(tf).toContain('project_path:mygroup/my-project:ref_type:branch:ref:main');
+    expect(tf).toContain('aws_iam_openid_connect_provider');
+    expect(tf).toContain('gitlab.com');
+  });
+
+  it('should throw for unsupported CI provider', () => {
+    expect(() => generateAwsTemplate('circleci', 'repo', 'main')).toThrow('Unsupported CI provider');
+  });
 });

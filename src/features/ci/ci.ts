@@ -1,12 +1,18 @@
 import fs from 'fs';
-import path from 'path';
 import dotenv from 'dotenv';
 import _sodium from 'libsodium-wrappers';
 import { getGithubOidcToken } from '../oidc/providers/github.js';
+import { getGitlabOidcToken } from '../oidc/providers/gitlab.js';
 import { decryptWithAwsKms } from '../oidc/providers/aws.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { execWithEnv } from '../../core/exec.js';
 import { getLocalVaultPath, getLocalVaultFile } from '../../core/vault-file.js';
+
+function detectCiProvider(): 'github' | 'gitlab' {
+  if (process.env.GITHUB_ACTIONS) return 'github';
+  if (process.env.GITLAB_CI) return 'gitlab';
+  throw new Error('Unrecognized CI environment. Supported: GitHub Actions, GitLab CI.');
+}
 
 export async function runCiCommand(commandArgs: string[], options: { env?: string } = {}) {
   const vaultPath = getLocalVaultPath(options.env);
@@ -22,7 +28,13 @@ export async function runCiCommand(commandArgs: string[], options: { env?: strin
     throw new Error('Missing VAULT_AWS_ROLE_ARN or VAULT_KMS_CIPHERTEXT environment variables.');
   }
 
-  const jwt = await getGithubOidcToken('sts.amazonaws.com');
+  const ciProvider = detectCiProvider();
+  let jwt: string;
+  if (ciProvider === 'github') {
+    jwt = await getGithubOidcToken('sts.amazonaws.com');
+  } else {
+    jwt = getGitlabOidcToken();
+  }
 
   const gmk = await decryptWithAwsKms(jwt, roleArn, kmsCiphertext);
 
@@ -34,7 +46,8 @@ export async function runCiCommand(commandArgs: string[], options: { env?: strin
   const decrypted = await decryptLocalVault(payload, gmk);
   const parsedEnv = dotenv.parse(decrypted);
 
-  await execWithEnv(parsedEnv, commandArgs);
+  const code = await execWithEnv(parsedEnv, commandArgs);
 
   _sodium.memzero(gmk);
+  process.exit(code);
 }

@@ -6,10 +6,10 @@ export async function getGithubOidcToken(audience: string): Promise<string> {
     throw new Error('Missing GitHub Actions OIDC environment variables. Ensure workflow permissions include "id-token: write".');
   }
 
-  const reqUrl = `${url}&audience=${encodeURIComponent(audience)}`;
-  const finalUrl = url.includes('?') ? reqUrl : `${url}?audience=${encodeURIComponent(audience)}`;
+  const requestUrl = new URL(url);
+  requestUrl.searchParams.set('audience', audience);
 
-  const response = await fetch(finalUrl, {
+  const response = await fetch(requestUrl.toString(), {
     headers: {
       Authorization: `Bearer ${token}`
     }

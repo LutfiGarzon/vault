@@ -17,6 +17,7 @@ export async function shareCommand(options: { env?: string } = {}) {
   if (!fs.existsSync(vaultPath)) {
     log.error(`${vaultFile} not found. Run 'vault init' first.`);
     process.exit(1);
+    return;
   }
 
   const fileContent = fs.readFileSync(vaultPath, 'utf-8');
@@ -28,6 +29,7 @@ export async function shareCommand(options: { env?: string } = {}) {
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
+    return;
   }
 
   let plainTextPayload = '';
@@ -37,6 +39,7 @@ export async function shareCommand(options: { env?: string } = {}) {
   } catch (error: any) {
     log.error(`Failed to decrypt local vault: ${error.message}`);
     process.exit(1);
+    return;
   }
 
   try {

@@ -45,8 +45,8 @@ export async function resolveGlobalMasterKey(providedPassword?: string, env?: st
       password = pass as string;
     }
 
-    const recoveryKey = generateRecoveryKey();
-    const hardwareKeyString = generateHardwareKey();
+    const recoveryKey = await generateRecoveryKey();
+    const hardwareKeyString = await generateHardwareKey();
     let hwKeyUsed = false;
     
     const stored = await storeHardwareKey('VaultCLI', hardwareIdentifier, hardwareKeyString);
@@ -118,6 +118,7 @@ export async function runVault(commandArgs: string[], env?: string) {
   if (!fs.existsSync(localVaultPath) && !fs.existsSync(globalVaultPath)) {
     log.error(`No local or global vault found. Run 'vault init' first.`);
     process.exit(1);
+    return;
   }
 
   let gmk: Uint8Array;
@@ -126,6 +127,7 @@ export async function runVault(commandArgs: string[], env?: string) {
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
+    return;
   }
 
   let combinedEnv: Record<string, string> = {};
@@ -152,11 +154,13 @@ export async function runVault(commandArgs: string[], env?: string) {
     } catch {
       log.error(`Failed to decrypt project vault.`);
       process.exit(1);
+      return;
     }
   }
 
-  await execWithEnv(combinedEnv, commandArgs, gmk);
+  const code = await execWithEnv(combinedEnv, commandArgs, gmk);
   _sodium.memzero(gmk);
+  process.exit(code);
 }
 export async function recoverGlobalIdentity(recoveryKey: string, newPassword: string) {
   const { deriveGmkFromRecoveryKey, reconstructGlobalIdentity } = await import('./envelope.js');

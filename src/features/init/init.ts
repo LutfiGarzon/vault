@@ -24,6 +24,7 @@ export async function initCommand(options: { file?: string; global?: boolean; en
     if (!fs.existsSync(filePath)) {
       log.error(`${options.file} not found.`);
       process.exit(1);
+      return;
     }
     const content = fs.readFileSync(filePath, 'utf-8');
     selectedEnv = dotenv.parse(content);

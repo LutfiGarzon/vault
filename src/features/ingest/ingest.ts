@@ -19,6 +19,7 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
   if (!fs.existsSync(ingestPath)) {
     log.error(`Transport file ${filepath} not found.`);
     process.exit(1);
+    return;
   }
 
   if (isDryRun) {
@@ -32,6 +33,7 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
   } catch {
     log.error(`Invalid transport file format.`);
     process.exit(1);
+    return;
   }
 
   const otp = await promptIngestOtp();
@@ -49,6 +51,7 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
   } catch (error: any) {
     log.error(`Failed to decrypt transport file: Incorrect OTP or corrupted payload.`);
     process.exit(1);
+    return;
   }
 
   if (!fs.existsSync(vaultPath)) {
@@ -68,6 +71,7 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
       if (!confirm) {
         log.info('Ingest cancelled. Transport file was NOT destroyed.');
         process.exit(0);
+        return;
       }
       await createLocalVault(plainTextPayload, undefined, options.env);
     }

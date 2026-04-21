@@ -15,19 +15,20 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
   const isDryRun = !!options.dryRun;
   const isGlobal = !!options.global;
   
-  const targetFile = options.file || (isGlobal ? undefined : ENV_FILE);
-  
   if (isGlobal && !options.file) {
     log.error('You must provide a file path (e.g., .zshrc) when using --global with clean.');
     process.exit(1);
+    return;
   }
 
-  const envPath = path.resolve(process.cwd(), targetFile!);
+  const targetFile = options.file || ENV_FILE;
+  const envPath = path.resolve(process.cwd(), targetFile);
   const vaultPath = isGlobal ? getGlobalVaultPath(options.env) : getLocalVaultPath(options.env);
 
   if (!fs.existsSync(envPath)) {
     log.error(`${targetFile} not found.`);
     process.exit(1);
+    return;
   }
 
   if (isDryRun) {
@@ -42,6 +43,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
   if (p.isCancel(confirm) || !confirm) {
     log.info('Clean cancelled.');
     process.exit(0);
+    return;
   }
 
   let vaultedKeys: string[] = [];
@@ -56,6 +58,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
     } catch (err: any) {
       log.error(`Failed to read vault for smart-cleaning: ${err.message}`);
       process.exit(1);
+      return;
     }
   }
 
@@ -78,7 +81,7 @@ export async function cleanCommand(options: { dryRun?: boolean; global?: boolean
   const newEnvContent = keptLines.join('\n').trim();
 
   // For sensitive files like .zshrc, we NEVER want to auto-delete the file
-  const baseName = path.basename(targetFile!);
+  const baseName = path.basename(targetFile);
   const isSensitiveFile = baseName.endsWith('rc') || baseName.endsWith('profile');
   
   const hasRemainingVars = keptLines.some(line => {

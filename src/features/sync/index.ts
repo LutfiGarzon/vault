@@ -11,12 +11,14 @@ export async function syncCommand(options: { env?: string } = {}): Promise<void>
   if (!options.env) {
     log.error('The --env flag is required for vault sync. Example: vault sync --env qa');
     process.exit(1);
+    return;
   }
 
   const ciphertextBase64 = process.env.VAULT_KMS_CIPHERTEXT;
   if (!ciphertextBase64) {
     log.error('Missing VAULT_KMS_CIPHERTEXT environment variable. This should contain the base64-encoded KMS ciphertext of the master key.');
     process.exit(1);
+    return;
   }
 
   await _sodium.ready;
@@ -46,6 +48,7 @@ export async function syncCommand(options: { env?: string } = {}): Promise<void>
       log.error(`Failed to decrypt master key from KMS: ${msg}`);
     }
     process.exit(1);
+    return;
   }
 
   const keyHex = sodium.to_hex(plaintext);
@@ -57,6 +60,7 @@ export async function syncCommand(options: { env?: string } = {}): Promise<void>
   if (!result.success) {
     log.error(`Failed to store master key in Secure Enclave: ${result.error}`);
     process.exit(1);
+    return;
   }
 
   log.success(`Master key for '${options.env}' synced to Secure Enclave (${keychainId}).`);

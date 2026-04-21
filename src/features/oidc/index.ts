@@ -18,6 +18,7 @@ export async function runOidcCommand(options: { env?: string } = {}): Promise<vo
   } else {
     p.cancel(`Cloud provider ${answers.cloudProvider} is not fully supported yet.`);
     process.exit(1);
+    return;
   }
 
   const filename = `vault-oidc-${answers.cloudProvider}${options.env ? `-${options.env}` : ''}.tf`;

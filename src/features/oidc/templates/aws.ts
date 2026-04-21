@@ -4,7 +4,10 @@ export function generateAwsTemplate(ciProvider: string, repo: string, branch: st
   if (env === 'prod') targetBranch = 'main';
   else if (env === 'qa') targetBranch = 'release/*';
 
-  if (ciProvider.toLowerCase() === 'github' || ciProvider === 'GitHub Actions') {
+  const normalizedCi = ciProvider.toLowerCase();
+  const envName = envSuffix.replace(/-/g, '_');
+
+  if (normalizedCi === 'github' || normalizedCi === 'github actions') {
     return `
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
@@ -12,7 +15,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
-data "aws_iam_policy_document" "assume_role${envSuffix.replace(/-/g, '_')}" {
+data "aws_iam_policy_document" "assume_role${envName}" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -29,11 +32,44 @@ data "aws_iam_policy_document" "assume_role${envSuffix.replace(/-/g, '_')}" {
   }
 }
 
-resource "aws_iam_role" "vault_ci_role${envSuffix.replace(/-/g, '_')}" {
+resource "aws_iam_role" "vault_ci_role${envName}" {
   name               = "vault-ci-role${envSuffix}"
-  assume_role_policy = data.aws_iam_policy_document.assume_role${envSuffix.replace(/-/g, '_')}.json
+  assume_role_policy = data.aws_iam_policy_document.assume_role${envName}.json
 }
 `;
   }
-  return '';
+
+  if (normalizedCi === 'gitlab' || normalizedCi === 'gitlab ci') {
+    return `
+resource "aws_iam_openid_connect_provider" "gitlab" {
+  url             = "https://gitlab.com"
+  client_id_list  = ["https://gitlab.com"]
+  thumbprint_list = ["b3dd7606d2b5a8b4a13771dbecc9ee1cecafa38a"]
+}
+
+data "aws_iam_policy_document" "assume_role${envName}" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.gitlab.arn]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "gitlab.com:sub"
+      values   = ["project_path:${repo}:ref_type:branch:ref:${targetBranch}"]
+    }
+  }
+}
+
+resource "aws_iam_role" "vault_ci_role${envName}" {
+  name               = "vault-ci-role${envSuffix}"
+  assume_role_policy = data.aws_iam_policy_document.assume_role${envName}.json
+}
+`;
+  }
+
+  throw new Error(`Unsupported CI provider: ${ciProvider}. Supported: github, gitlab.`);
 }

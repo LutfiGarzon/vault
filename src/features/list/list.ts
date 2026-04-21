@@ -21,6 +21,7 @@ export async function listCommand(options: { showSecrets?: boolean; global?: boo
   if (!fs.existsSync(localVaultPath) && !fs.existsSync(globalVaultPath)) {
     log.error(`No local or global vault found.`);
     process.exit(1);
+    return;
   }
 
   let gmk: Uint8Array;
@@ -29,6 +30,7 @@ export async function listCommand(options: { showSecrets?: boolean; global?: boo
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
+    return;
   }
 
   const listVault = async (p: string, label: string) => {
