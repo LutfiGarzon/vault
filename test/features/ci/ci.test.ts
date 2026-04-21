@@ -27,11 +27,11 @@ describe('CI Command', () => {
     vi.restoreAllMocks();
   });
 
-  it('throws if .env.vault is missing', async () => {
+  it('throws if vault is missing', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     await expect(runCiCommand(['node', '-e', 'console.log(process.env.TEST_SECRET)']))
       .rejects
-      .toThrow('No .env.vault file found in current directory.');
+      .toThrow('Environment vault not found: .env.vault');
   });
 
   it('successfully fetches OIDC, decrypts KMS, parses vault, invokes child and scrubs memory', async () => {
@@ -65,5 +65,34 @@ describe('CI Command', () => {
     );
 
     expect(sodiumSpy).toHaveBeenCalledWith(dummyGmk);
+  });
+
+  it('securely accesses specific environment vault via --env flag', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((path) => {
+      if (typeof path === 'string' && path.includes('.env.prod.vault')) return true;
+      return false;
+    });
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"prod_n","ciphertext":"prod_c"}');
+    
+    process.env.VAULT_AWS_ROLE_ARN = 'arn:dummy';
+    process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('dummy_jwt');
+    const dummyGmk = new Uint8Array([7, 8, 9]);
+    vi.mocked(aws.decryptWithAwsKms).mockResolvedValue(dummyGmk);
+    
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('API_URL=https://prod.api.com');
+    const sodiumSpy = vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+
+    await runCiCommand(['node', '-e', 'console.log(process.env.API_URL)'], { env: 'prod' });
+
+    expect(envelope.decryptLocalVault).toHaveBeenCalledWith(
+      expect.objectContaining({ nonce: 'prod_n' }),
+      dummyGmk
+    );
+    expect(exec.execWithEnv).toHaveBeenCalledWith(
+      { API_URL: 'https://prod.api.com' },
+      ['node', '-e', 'console.log(process.env.API_URL)']
+    );
   });
 });

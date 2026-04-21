@@ -6,11 +6,13 @@ import { getGithubOidcToken } from '../oidc/providers/github.js';
 import { decryptWithAwsKms } from '../oidc/providers/aws.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { execWithEnv } from '../../core/exec.js';
+import { getLocalVaultPath, getLocalVaultFile } from '../../core/vault-file.js';
 
-export async function runCiCommand(commandArgs: string[]) {
-  const vaultPath = path.resolve(process.cwd(), '.env.vault');
+export async function runCiCommand(commandArgs: string[], options: { env?: string } = {}) {
+  const vaultPath = getLocalVaultPath(options.env);
+  const vaultFile = getLocalVaultFile(options.env);
   if (!fs.existsSync(vaultPath)) {
-    throw new Error('No .env.vault file found in current directory.');
+    throw new Error(`Environment vault not found: ${vaultFile}`);
   }
 
   const roleArn = process.env.VAULT_AWS_ROLE_ARN;
