@@ -18,7 +18,8 @@ export function runCli() {
   program
     .name('vault')
     .description('Local secure storage for env variables.')
-    .version('1.0.0');
+    .version('1.0.0')
+    .option('-e, --env <environment>', 'Target environment (e.g. prod, qa)');
 
   program
     .command('init')
@@ -26,7 +27,8 @@ export function runCli() {
     .option('-f, --file <filename>', 'Path to a .env or shell file to encrypt')
     .option('-g, --global', 'Target the machine-wide global vault (~/.vault/global.vault)')
     .action((options) => {
-      initCommand(options).catch(err => {
+      const globalOpts = program.opts();
+      initCommand({ ...options, env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -36,7 +38,8 @@ export function runCli() {
     .command('share')
     .description('Export current environment secrets to a self-destructing transport file using an OTP')
     .action(() => {
-      shareCommand().catch(err => {
+      const globalOpts = program.opts();
+      shareCommand({ env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -47,7 +50,8 @@ export function runCli() {
     .description('Ingest a transport file, merge it into the local vault, and destroy the transport file')
     .option('-d, --dry-run', 'Preview the ingestion without modifying files')
     .action((filepath, options) => {
-      ingestCommand(filepath, options).catch(err => {
+      const globalOpts = program.opts();
+      ingestCommand(filepath, { ...options, env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -59,7 +63,8 @@ export function runCli() {
     .description('Add or update a secret in the local or global vault')
     .option('-g, --global', 'Target the machine-wide global vault (~/.vault/global.vault)')
     .action((key, value, options) => {
-      addCommand(key, value, options).catch(err => {
+      const globalOpts = program.opts();
+      addCommand(key, value, { ...options, env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -90,7 +95,8 @@ export function runCli() {
     .command('export')
     .description('Decrypt the current local vault and write it to a plain-text .env file')
     .action(() => {
-      exportCommand().catch(err => {
+      const globalOpts = program.opts();
+      exportCommand({ env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -103,7 +109,8 @@ export function runCli() {
     .option('-g, --global', 'Clean secrets from a global config file (e.g. .zshrc) using the Global Vault')
     .option('-f, --file <filename>', 'Path to the file to clean')
     .action((options) => {
-      cleanCommand(options).catch(err => {
+      const globalOpts = program.opts();
+      cleanCommand({ ...options, env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -116,7 +123,8 @@ export function runCli() {
     .option('-s, --show-secrets', 'Reveal the plain-text values of the secrets')
     .option('-g, --global', 'Only list keys from the global vault')
     .action((options) => {
-      listCommand(options).catch(err => {
+      const globalOpts = program.opts();
+      listCommand({ ...options, env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -126,7 +134,8 @@ export function runCli() {
     .command('oidc')
     .description('Setup OpenID Connect trust policies for CI/CD environments')
     .action(() => {
-      runOidcCommand().catch(err => {
+      const globalOpts = program.opts();
+      runOidcCommand({ env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -138,7 +147,8 @@ export function runCli() {
     .argument('<command...>', 'Command to execute inside CI')
     .passThroughOptions()
     .action((commandArgs: string[]) => {
-      runCiCommand(commandArgs).catch(err => {
+      const globalOpts = program.opts();
+      runCiCommand(commandArgs, { env: globalOpts.env }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -148,7 +158,8 @@ export function runCli() {
     .argument('[command...]', 'Command to execute with injected variables. If empty, spawns a subshell.')
     .passThroughOptions()
     .action((commandArgs: string[]) => {
-      runVault(commandArgs).catch(err => {
+      const globalOpts = program.opts();
+      runVault(commandArgs, globalOpts.env).catch(err => {
         console.error(err);
         process.exit(1);
       });
