@@ -74,7 +74,7 @@ describe('Ingest Feature', () => {
     await ingestCommand('shared.vault');
 
     expect(crypto.decryptPayload).toHaveBeenCalled();
-    expect(run.createLocalVault).toHaveBeenCalledWith('INGESTED=secret');
+    expect(run.createLocalVault).toHaveBeenCalledWith('INGESTED=secret', undefined, undefined);
     expect(fs.existsSync(transportPath)).toBe(false); // Should be unlinked
   });
 
@@ -94,7 +94,7 @@ describe('Ingest Feature', () => {
     await ingestCommand('shared.vault');
 
     expect(tui.confirmOverwrite).toHaveBeenCalled();
-    expect(run.createLocalVault).toHaveBeenCalledWith('INGESTED=secret');
+    expect(run.createLocalVault).toHaveBeenCalledWith('INGESTED=secret', undefined, undefined);
     expect(fs.existsSync(transportPath)).toBe(false);
   });
 

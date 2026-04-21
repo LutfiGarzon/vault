@@ -41,7 +41,7 @@ describe('Init Feature', () => {
 
     await initCommand({ file: '.env' });
 
-    expect(run.createLocalVault).toHaveBeenCalledWith('KEY=value\nOTHER=thing');
+    expect(run.createLocalVault).toHaveBeenCalledWith('KEY=value\nOTHER=thing', undefined, undefined);
   });
 
   it('should exit if file does not exist', async () => {
@@ -58,7 +58,7 @@ describe('Init Feature', () => {
     await initCommand({});
 
     expect(tui.runTui).toHaveBeenCalled();
-    expect(run.createLocalVault).toHaveBeenCalledWith('TUI_KEY=tui_value');
+    expect(run.createLocalVault).toHaveBeenCalledWith('TUI_KEY=tui_value', undefined, undefined);
   });
 
   it('should perform global migration if global flag is true', async () => {
@@ -72,5 +72,16 @@ describe('Init Feature', () => {
     expect(run.resolveGlobalMasterKey).toHaveBeenCalled();
     expect(generateLocalVault).toHaveBeenCalled();
     expect(fs.existsSync(path.join(testDir, '.vault', 'global.vault'))).toBe(true);
+  });
+
+  it('should initialize a local vault with --env flag mapped to specific environment', async () => {
+    const envFile = path.join(testDir, '.env');
+    fs.writeFileSync(envFile, 'QA=true');
+
+    vi.mocked(run.createLocalVault).mockResolvedValue(undefined);
+
+    await initCommand({ file: '.env', env: 'qa' });
+
+    expect(run.createLocalVault).toHaveBeenCalledWith('QA=true', undefined, 'qa');
   });
 });

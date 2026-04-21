@@ -11,7 +11,7 @@ import { promptForBioUpgrade, confirmBioUpgrade } from './tui.js';
 /**
  * Logic to add biometric authentication to an existing global identity.
  */
-export async function biometricsCommand() {
+export async function biometricsCommand(options: { env?: string } = {}) {
   await _sodium.ready;
   const sodium = _sodium;
 
@@ -52,24 +52,28 @@ export async function biometricsCommand() {
           log.error("Failed to compile hardware bridge.");
           log.info("You may need to install Xcode Command Line Tools: xcode-select --install");
           process.exit(1);
+          return;
         }
       } else {
         log.error("Hardware bridge source not found. Please compile and sign it in the project root first.");
         log.info("Run: swiftc src/core/bridge.swift -o vault-bridge && codesign ...");
         process.exit(1);
+        return;
       }
     }
   }
 
-  const identity = loadGlobalIdentity();
+  const identity = loadGlobalIdentity(options.env);
   if (!identity) {
     log.error("Global identity not found. Run 'vault init' in a project first.");
     process.exit(1);
+    return;
   }
 
   if (identity.keks.hardware) {
     log.info("Biometric authentication is already enabled for this machine.");
     process.exit(0);
+    return;
   }
 
   await promptForBioUpgrade();
@@ -77,6 +81,7 @@ export async function biometricsCommand() {
   if (!confirmed) {
     p.cancel(Flexoki.yellow('Upgrade cancelled.'));
     process.exit(0);
+    return;
   }
 
   // 1. Unlock current GMK using password
@@ -92,16 +97,19 @@ export async function biometricsCommand() {
   } catch (err: any) {
     log.error(`Authorization failed: ${err.message}`);
     process.exit(1);
+    return;
   }
 
   // 2. Setup Hardware Key
-  const hardwareKeyString = generateHardwareKey();
-  const result = await storeHardwareKey('VaultCLI', 'com.vault.global.hardwarekey', hardwareKeyString);
+  const hardwareKeyString = await generateHardwareKey();
+  const keychainId = options.env ? `com.vault.masterkey.${options.env}` : 'com.vault.global.hardwarekey';
+  const result = await storeHardwareKey('VaultCLI', keychainId, hardwareKeyString);
 
   if (!result.success) {
     log.error(`Failed to store hardware key: ${result.error}`);
     log.info("Ensure your Mac supports Touch ID and you are running on macOS.");
     process.exit(1);
+    return;
   }
 
   // 3. Encrypt GMK with the new Hardware Key
@@ -115,7 +123,7 @@ export async function biometricsCommand() {
   };
 
   // 4. Persistence
-  saveGlobalIdentity(identity);
+  saveGlobalIdentity(identity, options.env);
   sodium.memzero(gmk);
 
   p.outro(Flexoki.green(`✔ Biometric authentication enabled.`));

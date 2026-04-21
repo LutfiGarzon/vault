@@ -135,7 +135,8 @@ export async function decryptLocalVault(payload: LocalVaultPayload, gmk: Uint8Ar
   return sodium.to_string(plaintext);
 }
 
-export function generateRecoveryKey(): string {
+export async function generateRecoveryKey(): Promise<string> {
+  await _sodium.ready;
   const sodium = _sodium;
   const randomBytes = sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES);
   return `vlt-rcv-${sodium.to_base64(randomBytes, sodium.base64_variants.URLSAFE_NO_PADDING)}`;
@@ -147,7 +148,8 @@ export async function deriveGmkFromRecoveryKey(recoveryKey: string): Promise<Uin
   return _sodium.from_base64(b64, _sodium.base64_variants.URLSAFE_NO_PADDING);
 }
 
-export function generateHardwareKey(): string {
+export async function generateHardwareKey(): Promise<string> {
+  await _sodium.ready;
   const sodium = _sodium;
   const randomBytes = sodium.randombytes_buf(32);
   return sodium.to_hex(randomBytes);

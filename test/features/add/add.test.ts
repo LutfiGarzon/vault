@@ -97,4 +97,35 @@ describe('Add Feature', () => {
     
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
+
+  it('should add a key targetting specific environment vault via --env', async () => {
+    const qaVaultPath = path.join(testDir, '.env.qa.vault');
+    const gmk = new Uint8Array(32);
+    vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(gmk);
+    
+    const initialPayload = { nonce: 'n', ciphertext: 'c', globalDek: { nonce: 'dn', ciphertext: 'dc' } };
+    fs.writeFileSync(qaVaultPath, JSON.stringify(initialPayload));
+    
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('EXISTING=qa_val');
+    vi.mocked(envelope.generateLocalVault).mockResolvedValue({
+        nonce: 'qa2',
+        ciphertext: 'qc2',
+        globalDek: { nonce: 'dqn2', ciphertext: 'dqc2' }
+    });
+
+    await addCommand('API_URL', 'https://qa.api.com', { env: 'qa' });
+
+    expect(envelope.decryptLocalVault).toHaveBeenCalled();
+    expect(envelope.generateLocalVault).toHaveBeenCalledWith(
+        expect.stringContaining('API_URL=https://qa.api.com'),
+        gmk
+    );
+    expect(envelope.generateLocalVault).toHaveBeenCalledWith(
+        expect.stringContaining('EXISTING=qa_val'),
+        gmk
+    );
+    
+    const savedVault = JSON.parse(fs.readFileSync(qaVaultPath, 'utf-8'));
+    expect(savedVault.nonce).toBe('qa2');
+  });
 });

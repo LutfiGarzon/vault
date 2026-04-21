@@ -15,7 +15,7 @@ describe('Envelope Core', () => {
 
   it('should setup and unlock global identity with password', async () => {
     const password = 'test-password';
-    const recoveryKey = generateRecoveryKey();
+    const recoveryKey = await generateRecoveryKey();
     
     const { identity, gmk } = await setupGlobalIdentity(password, recoveryKey);
     
@@ -28,7 +28,7 @@ describe('Envelope Core', () => {
 
   it('should setup and unlock global identity with hardware key', async () => {
     const password = 'test-password';
-    const recoveryKey = generateRecoveryKey();
+    const recoveryKey = await generateRecoveryKey();
     const hardwareKey = 'test-hw-key';
     
     const { identity, gmk } = await setupGlobalIdentity(password, recoveryKey, hardwareKey);
@@ -41,7 +41,7 @@ describe('Envelope Core', () => {
 
   it('should encrypt and decrypt local vault', async () => {
     const password = 'test-password';
-    const recoveryKey = generateRecoveryKey();
+    const recoveryKey = await generateRecoveryKey();
     const { gmk } = await setupGlobalIdentity(password, recoveryKey);
     
     const plaintext = 'SECRET_DATA=12345';
@@ -57,7 +57,7 @@ describe('Envelope Core', () => {
 
   it('should throw error on incorrect password', async () => {
     const password = 'test-password';
-    const recoveryKey = generateRecoveryKey();
+    const recoveryKey = await generateRecoveryKey();
     const { identity } = await setupGlobalIdentity(password, recoveryKey);
     
     await expect(unlockGlobalMasterKey(identity, 'wrong-password'))

@@ -47,8 +47,8 @@ describe('Run Core', () => {
 
     it('should initialize global identity if none exists', async () => {
       vi.mocked(identity.loadGlobalIdentity).mockReturnValue(null);
-      vi.mocked(envelope.generateRecoveryKey).mockReturnValue('recovery-key');
-      vi.mocked(envelope.generateHardwareKey).mockReturnValue('hw-key');
+      vi.mocked(envelope.generateRecoveryKey).mockResolvedValue('recovery-key');
+      vi.mocked(envelope.generateHardwareKey).mockResolvedValue('hw-key');
       vi.mocked(hardwareKey.storeHardwareKey).mockResolvedValue({ success: true });
       vi.mocked(envelope.setupGlobalIdentity).mockResolvedValue({ identity: {} as any, gmk: mockGmk });
       vi.mocked(p.password).mockResolvedValue('password123');
@@ -64,8 +64,8 @@ describe('Run Core', () => {
 
     it('should use provided password for initialization if given', async () => {
       vi.mocked(identity.loadGlobalIdentity).mockReturnValue(null);
-      vi.mocked(envelope.generateRecoveryKey).mockReturnValue('recovery-key');
-      vi.mocked(envelope.generateHardwareKey).mockReturnValue('hw-key');
+      vi.mocked(envelope.generateRecoveryKey).mockResolvedValue('recovery-key');
+      vi.mocked(envelope.generateHardwareKey).mockResolvedValue('hw-key');
       vi.mocked(hardwareKey.storeHardwareKey).mockResolvedValue({ success: false });
       vi.mocked(envelope.setupGlobalIdentity).mockResolvedValue({ identity: {} as any, gmk: mockGmk });
 
@@ -179,9 +179,13 @@ describe('Run Core', () => {
       
       vi.mocked(dotenv.parse).mockImplementation((str) => str === 'GLOBAL=1' ? { GLOBAL: '1' } : { LOCAL: '2' });
 
+      vi.mocked(exec.execWithEnv).mockResolvedValue(0);
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+
       await runVault(['ls']);
 
       expect(exec.execWithEnv).toHaveBeenCalledWith({ GLOBAL: '1', LOCAL: '2' }, ['ls'], mockGmk);
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 });

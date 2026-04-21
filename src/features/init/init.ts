@@ -12,7 +12,7 @@ import * as p from '@clack/prompts';
 /**
  * The business logic for the 'vault init' command.
  */
-export async function initCommand(options: { file?: string; global?: boolean }) {
+export async function initCommand(options: { file?: string; global?: boolean; env?: string }) {
   await _sodium.ready;
 
   let selectedEnv: Record<string, string> = {};
@@ -24,6 +24,7 @@ export async function initCommand(options: { file?: string; global?: boolean }) 
     if (!fs.existsSync(filePath)) {
       log.error(`${options.file} not found.`);
       process.exit(1);
+      return;
     }
     const content = fs.readFileSync(filePath, 'utf-8');
     selectedEnv = dotenv.parse(content);
@@ -39,9 +40,9 @@ export async function initCommand(options: { file?: string; global?: boolean }) 
 
   if (isGlobal) {
     // Targeted Global Migration
-    const gmk = await resolveGlobalMasterKey();
+    const gmk = await resolveGlobalMasterKey(undefined, options.env);
     const payload = await generateLocalVault(plainTextPayload, gmk);
-    const globalVaultPath = getGlobalVaultPath();
+    const globalVaultPath = getGlobalVaultPath(options.env);
     
     fs.mkdirSync(path.dirname(globalVaultPath), { recursive: true });
     fs.writeFileSync(globalVaultPath, JSON.stringify(payload, null, 2), 'utf-8');
@@ -51,6 +52,6 @@ export async function initCommand(options: { file?: string; global?: boolean }) 
     log.info("You can now safely remove these secrets from your shell config file.");
   } else {
     // Project Init
-    await createLocalVault(plainTextPayload);
+    await createLocalVault(plainTextPayload, undefined, options.env);
   }
 }
