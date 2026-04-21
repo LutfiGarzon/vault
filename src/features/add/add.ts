@@ -4,16 +4,17 @@ import dotenv from 'dotenv';
 import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, generateLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
+import { getLocalVaultPath, getLocalVaultFile } from '../../core/vault-file.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import { promptForValue } from './tui.js';
 import _sodium from 'libsodium-wrappers';
 
-export async function addCommand(key: string, valueArg: string | undefined, options: { global?: boolean }) {
+export async function addCommand(key: string, valueArg: string | undefined, options: { global?: boolean; env?: string }) {
   const isGlobal = !!options.global;
-  const vaultPath = isGlobal ? getGlobalVaultPath() : path.resolve(process.cwd(), '.env.vault');
+  const vaultPath = isGlobal ? getGlobalVaultPath(options.env) : getLocalVaultPath(options.env);
   
   if (!isGlobal && !fs.existsSync(vaultPath)) {
-    log.error(`.env.vault not found. Run 'vault init' first or use --global.`);
+    log.error(`${getLocalVaultFile(options.env)} not found. Run 'vault init' first or use --global.`);
     process.exit(1);
   }
 
@@ -21,7 +22,7 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
 
   let gmk: Uint8Array;
   try {
-    gmk = await resolveGlobalMasterKey();
+    gmk = await resolveGlobalMasterKey(undefined, options.env);
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
@@ -55,6 +56,6 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
   fs.mkdirSync(path.dirname(vaultPath), { recursive: true });
   fs.writeFileSync(vaultPath, JSON.stringify(newPayload, null, 2), 'utf-8');
   
-  const target = isGlobal ? 'global vault' : '.env.vault';
+  const target = isGlobal ? 'global vault' : getLocalVaultFile(options.env);
   log.success(`Successfully set ${Flexoki.blue(key)} in ${target}.`);
 }
