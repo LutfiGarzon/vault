@@ -28,7 +28,7 @@ describe('OIDC Command', () => {
     await runOidcCommand();
 
     expect(tui.runTui).toHaveBeenCalled();
-    expect(aws.generateAwsTemplate).toHaveBeenCalledWith('github', 'octocat/my-repo', 'main');
+    expect(aws.generateAwsTemplate).toHaveBeenCalledWith('github', 'octocat/my-repo', 'main', undefined);
     
     expect(fs.writeFile).toHaveBeenCalledWith(
       '/mock/dir/vault-oidc-aws.tf',

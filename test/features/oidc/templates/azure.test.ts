@@ -8,4 +8,17 @@ describe('Azure OIDC Template', () => {
     expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
     expect(tf).toContain('azuread_application_federated_identity_credential');
   });
+
+  it('should strictly map prod environment to main branch', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'feature-branch', 'prod');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
+    expect(tf).toContain('vault-ci-role-prod');
+  });
+
+  it('should strictly map qa environment to release/* branch', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'feature-branch', 'qa');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/release/*');
+    expect(tf).toContain('vault-ci-role-qa');
+  });
 });
+

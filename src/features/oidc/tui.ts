@@ -5,9 +5,10 @@ export interface OidcAnswers {
   ciProvider: string;
   repo: string;
   branch: string;
+  environment?: string;
 }
 
-export async function runTui(): Promise<OidcAnswers> {
+export async function runTui(env?: string): Promise<OidcAnswers> {
   const cloudProvider = await p.select({
     message: 'Select your Cloud Provider:',
     options: [
@@ -63,6 +64,7 @@ export async function runTui(): Promise<OidcAnswers> {
     cloudProvider: cloudProvider as string,
     ciProvider: ciProvider as string,
     repo: repo as string,
-    branch: branch as string
+    branch: branch as string,
+    environment: env
   };
 }
