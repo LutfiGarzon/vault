@@ -64,4 +64,17 @@ describe('List Feature', () => {
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('superpassword'));
   });
+
+  it('should only list variables from the specific environment vault via --env qa', async () => {
+    const qaVaultPath = path.join(testDir, '.env.qa.vault');
+    fs.writeFileSync(qaVaultPath, JSON.stringify({}));
+    vi.mocked(identity.getGlobalVaultPath).mockReturnValue(path.join(testDir, 'global.vault'));
+    vi.mocked(run.resolveGlobalMasterKey).mockResolvedValue(new Uint8Array(32));
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('QA_ONLY=true');
+
+    await listCommand({ env: 'qa' });
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('QA_ONLY'));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('••••'));
+  });
 });

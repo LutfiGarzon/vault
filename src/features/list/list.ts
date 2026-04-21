@@ -4,20 +4,19 @@ import dotenv from 'dotenv';
 import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
+import { getLocalVaultPath } from '../../core/vault-file.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import _sodium from 'libsodium-wrappers';
-
-const VAULT_FILE = '.env.vault';
 
 export function maskValue(val: string): string {
   if (val.length <= 4) return '••••';
   return val[0] + '••••••••' + val[val.length - 1];
 }
 
-export async function listCommand(options: { showSecrets?: boolean; global?: boolean }) {
+export async function listCommand(options: { showSecrets?: boolean; global?: boolean; env?: string }) {
   await _sodium.ready;
-  const localVaultPath = path.resolve(process.cwd(), VAULT_FILE);
-  const globalVaultPath = getGlobalVaultPath();
+  const localVaultPath = getLocalVaultPath(options.env);
+  const globalVaultPath = getGlobalVaultPath(options.env);
   
   if (!fs.existsSync(localVaultPath) && !fs.existsSync(globalVaultPath)) {
     log.error(`No local or global vault found.`);
@@ -26,7 +25,7 @@ export async function listCommand(options: { showSecrets?: boolean; global?: boo
 
   let gmk: Uint8Array;
   try {
-    gmk = await resolveGlobalMasterKey();
+    gmk = await resolveGlobalMasterKey(undefined, options.env);
   } catch (error: any) {
     log.error(`Failed to resolve Global Identity: ${error.message}`);
     process.exit(1);
