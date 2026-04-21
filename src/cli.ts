@@ -19,6 +19,7 @@ export function runCli() {
     .name('vault')
     .description('Local secure storage for env variables.')
     .version('1.0.0')
+    .enablePositionalOptions()
     .option('-e, --env <environment>', 'Target environment (e.g. prod, qa)');
 
   program
