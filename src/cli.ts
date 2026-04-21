@@ -1,4 +1,7 @@
 import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { initCommand } from './features/init/init.js';
 import { shareCommand } from './features/share/share.js';
 import { ingestCommand } from './features/ingest/ingest.js';
@@ -14,12 +17,14 @@ import { syncCommand } from './features/sync/index.js';
 import { runVault } from './core/run.js';
 
 export function runCli() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
   const program = new Command();
 
   program
     .name('vault')
     .description('Local secure storage for env variables.')
-    .version('1.0.0')
+    .version(pkg.version)
     .enablePositionalOptions()
     .option('-e, --env <environment>', 'Target environment (e.g. prod, qa)');
 
