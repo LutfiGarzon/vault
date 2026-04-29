@@ -1,4 +1,8 @@
 export async function getGithubOidcToken(audience: string): Promise<string> {
+  if (!audience || !audience.trim()) {
+    throw new Error('audience is required and must not be empty.');
+  }
+
   const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
   const token = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 

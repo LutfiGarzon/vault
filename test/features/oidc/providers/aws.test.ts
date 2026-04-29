@@ -38,4 +38,19 @@ describe('AWS OIDC Provider', () => {
       CiphertextBlob: expect.any(Uint8Array)
     });
   });
+
+  it('should throw if STS response is missing SessionToken', async () => {
+    const mockStsSend = vi.fn().mockResolvedValue({
+      Credentials: {
+        AccessKeyId: 'AKIA_DUMMY',
+        SecretAccessKey: 'SECRET_DUMMY'
+        // SessionToken missing
+      }
+    });
+    STSClient.prototype.send = mockStsSend as any;
+
+    await expect(
+      decryptWithAwsKms('dummy_jwt', 'arn:aws:iam::123:role/dummy', 'base64ciphertext')
+    ).rejects.toThrow('SessionToken');
+  });
 });

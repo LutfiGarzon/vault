@@ -11,8 +11,8 @@ export async function decryptWithAwsKms(jwt: string, roleArn: string, ciphertext
   }));
 
   const credentials = stsResponse.Credentials;
-  if (!credentials || !credentials.AccessKeyId || !credentials.SecretAccessKey) {
-    throw new Error('Failed to assume role with web identity.');
+  if (!credentials || !credentials.AccessKeyId || !credentials.SecretAccessKey || !credentials.SessionToken) {
+    throw new Error('Failed to assume role with web identity: missing credentials or SessionToken.');
   }
 
   const kms = new KMSClient({
