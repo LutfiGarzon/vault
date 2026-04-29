@@ -3,6 +3,8 @@ import { runCiCommand } from '../../../src/features/ci/ci.js';
 import * as github from '../../../src/features/oidc/providers/github.js';
 import * as gitlab from '../../../src/features/oidc/providers/gitlab.js';
 import * as aws from '../../../src/features/oidc/providers/aws.js';
+import * as azure from '../../../src/features/oidc/providers/azure-keyvault.js';
+import * as gcp from '../../../src/features/oidc/providers/gcp-kms.js';
 import * as envelope from '../../../src/core/envelope.js';
 import * as exec from '../../../src/core/exec.js';
 import fs from 'fs';
@@ -12,6 +14,8 @@ vi.mock('fs');
 vi.mock('../../../src/features/oidc/providers/github.js');
 vi.mock('../../../src/features/oidc/providers/gitlab.js');
 vi.mock('../../../src/features/oidc/providers/aws.js');
+vi.mock('../../../src/features/oidc/providers/azure-keyvault.js');
+vi.mock('../../../src/features/oidc/providers/gcp-kms.js');
 vi.mock('../../../src/core/envelope.js');
 vi.mock('../../../src/core/exec.js');
 
@@ -133,6 +137,81 @@ describe('CI Command', () => {
     expect(exec.execWithEnv).toHaveBeenCalledWith(
       { API_URL: 'https://prod.api.com' },
       ['node', '-e', 'console.log(process.env.API_URL)']
+    );
+  });
+
+  it('uses Azure Key Vault when VAULT_AZURE_TENANT_ID is set', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+
+    process.env.GITHUB_ACTIONS = 'true';
+    delete process.env.VAULT_AWS_ROLE_ARN;
+    process.env.VAULT_AZURE_TENANT_ID = 'my-tenant';
+    process.env.VAULT_AZURE_CLIENT_ID = 'my-client';
+    process.env.VAULT_AZURE_KEY_VAULT_URL = 'https://vault.azure.net';
+    process.env.VAULT_AZURE_KEY_NAME = 'my-key';
+    process.env.VAULT_AZURE_CIPHERTEXT = 'azure-cipher';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('azure-jwt');
+
+    const dummyGmk = new Uint8Array([9, 9, 9]);
+    // The AwsKmsProvider internally calls decryptWithAwsKms, but for Azure
+    // we need to mock the AzureKeyVaultProvider's decrypt method
+    const mockDecrypt = vi.fn().mockResolvedValue(dummyGmk);
+    vi.mocked(azure.AzureKeyVaultProvider).mockImplementation(function(this: any) {
+      this.name = 'azure';
+      this.decrypt = mockDecrypt;
+      return this;
+    } as any);
+
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('SECRET=azure-value');
+    vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+
+    await runCiCommand(['npm', 'start']);
+
+    expect(github.getGithubOidcToken).toHaveBeenCalledWith('api://AzureADTokenExchange');
+    expect(mockDecrypt).toHaveBeenCalledWith('azure-jwt');
+    expect(exec.execWithEnv).toHaveBeenCalledWith(
+      { SECRET: 'azure-value' },
+      ['npm', 'start']
+    );
+  });
+
+  it('uses GCP KMS when VAULT_GCP_PROJECT_NUMBER is set', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+
+    process.env.GITHUB_ACTIONS = 'true';
+    delete process.env.VAULT_AWS_ROLE_ARN;
+    process.env.VAULT_GCP_PROJECT_NUMBER = '123456';
+    process.env.VAULT_GCP_POOL_ID = 'my-pool';
+    process.env.VAULT_GCP_PROVIDER_ID = 'github';
+    process.env.VAULT_GCP_PROJECT_ID = 'my-project';
+    process.env.VAULT_GCP_KMS_LOCATION = 'global';
+    process.env.VAULT_GCP_KMS_KEY_RING = 'my-ring';
+    process.env.VAULT_GCP_KMS_KEY_NAME = 'my-key';
+    process.env.VAULT_GCP_CIPHERTEXT = 'gcp-cipher';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('gcp-jwt');
+
+    const dummyGmk = new Uint8Array([8, 8, 8]);
+    const mockDecrypt = vi.fn().mockResolvedValue(dummyGmk);
+    vi.mocked(gcp.GcpKmsProvider).mockImplementation(function(this: any) {
+      this.name = 'gcp';
+      this.decrypt = mockDecrypt;
+      return this;
+    } as any);
+
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('SECRET=gcp-value');
+    vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+
+    await runCiCommand(['npm', 'start']);
+
+    expect(github.getGithubOidcToken).toHaveBeenCalledWith('https://iam.googleapis.com');
+    expect(mockDecrypt).toHaveBeenCalledWith('gcp-jwt');
+    expect(exec.execWithEnv).toHaveBeenCalledWith(
+      { SECRET: 'gcp-value' },
+      ['npm', 'start']
     );
   });
 });
