@@ -2,7 +2,11 @@ import { STSClient, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts
 import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 
 export async function decryptWithAwsKms(jwt: string, roleArn: string, ciphertextBase64: string): Promise<Uint8Array> {
-  const sts = new STSClient({});
+  // AssumeRoleWithWebIdentity does not require AWS credentials — the JWT is the credential.
+  // Use empty credentials to prevent the SDK from failing on credential chain resolution.
+  const sts = new STSClient({
+    credentials: async () => ({ accessKeyId: '', secretAccessKey: '' })
+  });
   
   const stsResponse = await sts.send(new AssumeRoleWithWebIdentityCommand({
     RoleArn: roleArn,
@@ -11,8 +15,8 @@ export async function decryptWithAwsKms(jwt: string, roleArn: string, ciphertext
   }));
 
   const credentials = stsResponse.Credentials;
-  if (!credentials || !credentials.AccessKeyId || !credentials.SecretAccessKey) {
-    throw new Error('Failed to assume role with web identity.');
+  if (!credentials || !credentials.AccessKeyId || !credentials.SecretAccessKey || !credentials.SessionToken) {
+    throw new Error('Failed to assume role with web identity: missing credentials or SessionToken.');
   }
 
   const kms = new KMSClient({
@@ -23,7 +27,7 @@ export async function decryptWithAwsKms(jwt: string, roleArn: string, ciphertext
     }
   });
 
-  const ciphertextBlob = Buffer.from(ciphertextBase64, 'base64');
+  const ciphertextBlob = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
   
   const kmsResponse = await kms.send(new DecryptCommand({
     CiphertextBlob: ciphertextBlob

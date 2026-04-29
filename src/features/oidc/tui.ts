@@ -19,8 +19,7 @@ export async function runTui(env?: string): Promise<OidcAnswers> {
   });
 
   if (p.isCancel(cloudProvider)) {
-    p.cancel('Operation cancelled.');
-    process.exit(0);
+    throw new Error('Operation cancelled.');
   }
 
   const ciProvider = await p.select({
@@ -32,32 +31,34 @@ export async function runTui(env?: string): Promise<OidcAnswers> {
   });
 
   if (p.isCancel(ciProvider)) {
-    p.cancel('Operation cancelled.');
-    process.exit(0);
+    throw new Error('Operation cancelled.');
   }
 
   const repo = await p.text({
     message: 'Enter the target repository (e.g. octocat/my-repo):',
-    validate: (val) => !val || val.trim().length === 0 ? 'Repository is required' : undefined
+    validate: (val) => {
+      if (!val || val.trim().length === 0) return 'Repository is required';
+      if (!val.includes('/') || val.startsWith('/') || val.endsWith('/')) {
+        return 'Repository must be in the format owner/repo';
+      }
+      return;
+    }
   });
 
   if (p.isCancel(repo)) {
-    p.cancel('Operation cancelled.');
-    process.exit(0);
+    throw new Error('Operation cancelled.');
   }
 
   const branch = await p.text({
     message: 'Enter the branch constraint (e.g. main):',
     validate: (val) => {
       if (!val || val.trim().length === 0) return 'Branch is required';
-      if (val.includes('*')) return 'Wildcard branch permissions are forbidden by default.';
       return;
     }
   });
 
   if (p.isCancel(branch)) {
-    p.cancel('Operation cancelled.');
-    process.exit(0);
+    throw new Error('Operation cancelled.');
   }
 
   return {

@@ -44,4 +44,12 @@ describe('Github OIDC Provider', () => {
       }
     );
   });
+
+  it('should throw when audience is empty', async () => {
+    process.env.ACTIONS_ID_TOKEN_REQUEST_URL = 'http://localhost:8080/token';
+    process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN = 'dummy_request_token';
+
+    await expect(getGithubOidcToken('')).rejects.toThrow('audience');
+    await expect(getGithubOidcToken('  ')).rejects.toThrow('audience');
+  });
 });

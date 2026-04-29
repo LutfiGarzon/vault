@@ -135,6 +135,91 @@ echo $MY_SECRET
 exit
 ```
 
+### 11. OIDC Setup (CI/CD Trust Policy)
+Generate Terraform templates to establish OIDC-based trust between your CI provider and cloud provider. This allows your CI pipelines to authenticate via OpenID Connect instead of long-lived cloud credentials.
+
+```bash
+# Interactive wizard
+vault oidc
+
+# With environment suffix (generates vault-oidc-aws-prod.tf)
+vault oidc --env prod
+```
+
+**Supported cloud providers:** AWS, Azure, GCP  
+**Supported CI providers:** GitHub Actions, GitLab CI
+
+| Cloud | Terraform resources created |
+|-------|----------------------------|
+| AWS | IAM OIDC provider, trust policy, IAM role, role ARN output |
+| Azure | Azure AD application, federated identity credential, object ID output |
+| GCP | Workload identity pool, pool provider, service account, IAM binding, `project_id` variable |
+
+After generating the template, apply it with:
+```bash
+terraform init
+terraform apply -var="project_id=$GCP_PROJECT_ID"  # GCP only
+terraform apply  # AWS / Azure
+```
+
+### CI Runtime (vault ci)
+
+> **KMS Key:** The OIDC templates configure trust between CI and your cloud provider, but do **not** create the encryption key (KMS key). Create the key manually in your cloud console, encrypt your vault's Group Master Key with it, and pass the ciphertext as an environment variable.
+
+Inside your CI pipeline, `vault ci` uses OIDC to decrypt secrets at runtime. Configure these environment variables in your CI secrets:
+
+**AWS**
+```bash
+VAULT_AWS_ROLE_ARN=arn:aws:iam::123456789:role/vault-ci-role
+VAULT_KMS_CIPHERTEXT=base64-encrypted-kms-ciphertext
+```
+
+**Azure**
+```bash
+VAULT_AZURE_TENANT_ID=your-tenant-id
+VAULT_AZURE_CLIENT_ID=your-app-registration-client-id
+VAULT_AZURE_KEY_VAULT_URL=https://myvault.vault.azure.net
+VAULT_AZURE_KEY_NAME=my-key
+VAULT_AZURE_CIPHERTEXT=base64-encrypted-ciphertext
+# Optional: override auto-detection
+# VAULT_CLOUD_PROVIDER=azure
+```
+> **GitLab users:** Configure your `.gitlab-ci.yml` `id_tokens` with audience `api://AzureADTokenExchange` for the Azure path.
+
+**GCP**
+```bash
+VAULT_GCP_PROJECT_NUMBER=123456789
+VAULT_GCP_POOL_ID=vault-pool
+VAULT_GCP_PROVIDER_ID=github
+VAULT_GCP_PROJECT_ID=my-project            # defaults to PROJECT_NUMBER
+VAULT_GCP_KMS_LOCATION=global               # defaults to global
+VAULT_GCP_KMS_KEY_RING=my-keyring
+VAULT_GCP_KMS_KEY_NAME=my-key
+VAULT_GCP_CIPHERTEXT=base64-encrypted-ciphertext
+```
+
+**Disambiguation:** If multiple cloud env vars are set, use:
+```bash
+VAULT_CLOUD_PROVIDER=aws|azure|gcp
+```
+
+#### GitHub Actions Workflow Example
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: vault ci npm start
+        env:
+          VAULT_AWS_ROLE_ARN: ${{ secrets.VAULT_AWS_ROLE_ARN }}
+          VAULT_KMS_CIPHERTEXT: ${{ secrets.VAULT_KMS_CIPHERTEXT }}
+```
+
 ---
 
 ## › Agent Mode (AI Support)
@@ -149,10 +234,13 @@ Vault is designed for the age of AI. When you run an agent with Vault (e.g., `va
 
 ## › Contributing & Forking
 
-This project is built with a **feature-first modular architecture**. To add a new command:
-1.  Create `src/features/your-feature/your-feature.ts` for logic.
-2.  Create `src/features/your-feature/tui.ts` for interactions.
+This project is built with a **feature-first modular architecture** and follows TDD (Test-Driven Development). To add a new command:
+1.  Write failing tests in `test/features/your-feature/`.
+2.  Create `src/features/your-feature/` for logic, TUI, templates, and providers.
 3.  Add the route to `src/cli.ts`.
+4.  Run `npm test` to ensure all tests pass and coverage thresholds are met.
+
+See `src/features/oidc/` for a complete example of a feature with templates, providers, and full test coverage.
 
 ---
 

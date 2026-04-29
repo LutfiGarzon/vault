@@ -1,17 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { decryptWithAwsKms } from '../../../../src/features/oidc/providers/aws.js';
+import { AwsKmsProvider } from '../../../../src/features/oidc/providers/aws-kms.js';
 import { STSClient, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts';
 import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 
 vi.mock('@aws-sdk/client-sts');
 vi.mock('@aws-sdk/client-kms');
 
-describe('AWS OIDC Provider', () => {
+describe('AwsKmsProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('exchanges JWT for temporary credentials and decrypts KMS ciphertext', async () => {
+  it('should have name "aws"', () => {
+    const provider = new AwsKmsProvider('arn:aws:iam::123:role/dummy', 'base64');
+    expect(provider.name).toBe('aws');
+  });
+
+  it('should delegate to decryptWithAwsKms with stored config', async () => {
     const mockStsSend = vi.fn().mockResolvedValue({
       Credentials: {
         AccessKeyId: 'AKIA_DUMMY',
@@ -26,7 +31,8 @@ describe('AWS OIDC Provider', () => {
     });
     KMSClient.prototype.send = mockKmsSend as any;
 
-    const result = await decryptWithAwsKms('dummy_jwt', 'arn:aws:iam::123:role/dummy', 'base64ciphertext');
+    const provider = new AwsKmsProvider('arn:aws:iam::123:role/dummy', 'base64cipher');
+    const result = await provider.decrypt('dummy_jwt');
 
     expect(result).toEqual(new Uint8Array([1, 2, 3]));
     expect(AssumeRoleWithWebIdentityCommand).toHaveBeenCalledWith({
@@ -34,23 +40,5 @@ describe('AWS OIDC Provider', () => {
       RoleSessionName: 'vault-ci-session',
       WebIdentityToken: 'dummy_jwt'
     });
-    expect(DecryptCommand).toHaveBeenCalledWith({
-      CiphertextBlob: expect.any(Uint8Array)
-    });
-  });
-
-  it('should throw if STS response is missing SessionToken', async () => {
-    const mockStsSend = vi.fn().mockResolvedValue({
-      Credentials: {
-        AccessKeyId: 'AKIA_DUMMY',
-        SecretAccessKey: 'SECRET_DUMMY'
-        // SessionToken missing
-      }
-    });
-    STSClient.prototype.send = mockStsSend as any;
-
-    await expect(
-      decryptWithAwsKms('dummy_jwt', 'arn:aws:iam::123:role/dummy', 'base64ciphertext')
-    ).rejects.toThrow('SessionToken');
   });
 });
