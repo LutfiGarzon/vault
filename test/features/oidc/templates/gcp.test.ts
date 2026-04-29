@@ -1,0 +1,45 @@
+import { describe, it, expect } from 'vitest';
+import { generateGcpTemplate } from '../../../../src/features/oidc/templates/gcp';
+
+describe('GCP OIDC Template', () => {
+  it('should generate terraform with github actions workload identity provider', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
+    expect(tf).toContain('google_iam_workload_identity_pool_provider');
+    expect(tf).toContain('https://token.actions.githubusercontent.com');
+  });
+
+  it('should strictly map prod environment to main branch', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'feature-branch', 'prod');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
+    expect(tf).toContain('vault-pool-prod');
+  });
+
+  it('should strictly map qa environment to release/* branch', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'feature-branch', 'qa');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/release/*');
+    expect(tf).toContain('vault-pool-qa');
+  });
+
+  it('should generate terraform with gitlab workload identity provider', () => {
+    const tf = generateGcpTemplate('gitlab', 'mygroup/my-project', 'main');
+    expect(tf).toContain('project_path:mygroup/my-project:ref_type:branch:ref:main');
+    expect(tf).toContain('google_iam_workload_identity_pool_provider');
+    expect(tf).toContain('https://gitlab.com');
+  });
+
+  it('should throw for unsupported CI provider', () => {
+    expect(() => generateGcpTemplate('circleci', 'repo', 'main')).toThrow('Unsupported CI provider');
+  });
+
+  it('should include the workload identity pool resource', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('resource "google_iam_workload_identity_pool" "vault"');
+  });
+
+  it('should include service account binding', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('google_service_account_iam_member');
+  });
+});
