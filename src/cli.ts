@@ -142,9 +142,10 @@ export function runCli() {
     .command('oidc')
     .description('Setup OpenID Connect trust policies for CI/CD environments')
     .option('-f, --force', 'Overwrite existing .tf file without prompting')
+    .option('-d, --dry-run', 'Preview template without writing to disk')
     .action((options) => {
       const globalOpts = program.opts();
-      runOidcCommand({ env: globalOpts.env, force: options.force }).catch(err => {
+      runOidcCommand({ env: globalOpts.env, force: options.force, dryRun: options.dryRun }).catch(err => {
         console.error(err);
         process.exit(1);
       });
@@ -157,11 +158,13 @@ export function runCli() {
       'Set cloud provider via env vars: VAULT_AWS_ROLE_ARN, VAULT_AZURE_TENANT_ID, or VAULT_GCP_PROJECT_NUMBER.\n' +
       'Use VAULT_CLOUD_PROVIDER to disambiguate if multiple are set.'
     )
-    .argument('<command...>', 'Command to execute inside CI')
+    .argument('[command...]', 'Command to execute inside CI (omit with --check)')
+    .option('-c, --check', 'Verify OIDC→KMS chain without executing a command')
     .passThroughOptions()
-    .action((commandArgs: string[]) => {
+    .action((commandArgs: string[], options) => {
       const globalOpts = program.opts();
-      runCiCommand(commandArgs, { env: globalOpts.env }).catch(err => {
+      const opts = { env: globalOpts.env, check: options.check };
+      runCiCommand(commandArgs || [], opts).catch(err => {
         console.error(err);
         process.exit(1);
       });

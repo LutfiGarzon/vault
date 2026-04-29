@@ -141,6 +141,20 @@ describe('OIDC Command', () => {
     cwdSpy.mockRestore();
   });
 
+  it('should skip overwrite when user cancels the confirm prompt', async () => {
+    const cancelSymbol = Symbol('cancel');
+    vi.mocked(fs.access).mockResolvedValue(undefined); // file exists
+    vi.mocked(p.confirm).mockResolvedValue(cancelSymbol as any);
+    vi.mocked(p.isCancel).mockImplementation((val: any) => val === cancelSymbol);
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/mock/dir');
+
+    await runOidcCommand();
+
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    expect(p.outro).toHaveBeenCalledWith('Aborted — file was not overwritten.');
+    cwdSpy.mockRestore();
+  });
+
   it('should skip prompt when --force is passed', async () => {
     vi.mocked(fs.access).mockResolvedValue(undefined); // file exists
     vi.mocked(fs.writeFile).mockResolvedValue(undefined); // write succeeds
@@ -150,6 +164,19 @@ describe('OIDC Command', () => {
 
     expect(p.confirm).not.toHaveBeenCalled();
     expect(fs.writeFile).toHaveBeenCalled();
+    cwdSpy.mockRestore();
+  });
+
+  it('should print template to stdout instead of writing when --dry-run', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/mock/dir');
+
+    await runOidcCommand({ dryRun: true });
+
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith('mocked aws terraform');
+    expect(p.outro).toHaveBeenCalledWith(expect.stringContaining('Dry run'));
+    logSpy.mockRestore();
     cwdSpy.mockRestore();
   });
 });

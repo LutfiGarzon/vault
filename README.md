@@ -164,6 +164,8 @@ terraform apply  # AWS / Azure
 
 ### CI Runtime (vault ci)
 
+> **KMS Key:** The OIDC templates configure trust between CI and your cloud provider, but do **not** create the encryption key (KMS key). Create the key manually in your cloud console, encrypt your vault's Group Master Key with it, and pass the ciphertext as an environment variable.
+
 Inside your CI pipeline, `vault ci` uses OIDC to decrypt secrets at runtime. Configure these environment variables in your CI secrets:
 
 **AWS**
@@ -199,6 +201,23 @@ VAULT_GCP_CIPHERTEXT=base64-encrypted-ciphertext
 **Disambiguation:** If multiple cloud env vars are set, use:
 ```bash
 VAULT_CLOUD_PROVIDER=aws|azure|gcp
+```
+
+#### GitHub Actions Workflow Example
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: vault ci npm start
+        env:
+          VAULT_AWS_ROLE_ARN: ${{ secrets.VAULT_AWS_ROLE_ARN }}
+          VAULT_KMS_CIPHERTEXT: ${{ secrets.VAULT_KMS_CIPHERTEXT }}
 ```
 
 ---

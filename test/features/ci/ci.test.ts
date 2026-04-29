@@ -126,6 +126,38 @@ describe('CI Command', () => {
     await expect(runCiCommand(['node'])).rejects.toThrow('VAULT_GCP_KMS_KEY_RING');
   });
 
+  it('should verify OIDC→KMS chain in --check mode without vault file or command', async () => {
+    // --check should NOT require vault file
+    vi.mocked(fs.existsSync).mockReturnValue(false); // vault missing — should be ignored
+
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_AWS_ROLE_ARN = 'arn:dummy';
+    process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('dummy_jwt');
+    const dummyGmk = new Uint8Array([1, 2, 3]);
+    vi.mocked(aws.decryptWithAwsKms).mockResolvedValue(dummyGmk);
+    vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+
+    await runCiCommand(['node'], { check: true });
+
+    // Should have called STS/KMS but NOT read vault or exec
+    expect(aws.decryptWithAwsKms).toHaveBeenCalledWith('dummy_jwt', 'arn:dummy', 'b64dummy');
+    expect(fs.readFileSync).not.toHaveBeenCalled();
+    expect(exec.execWithEnv).not.toHaveBeenCalled();
+  });
+
+  it('should fail --check when KMS decrypt fails', async () => {
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_AWS_ROLE_ARN = 'arn:dummy';
+    process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('bad_jwt');
+    vi.mocked(aws.decryptWithAwsKms).mockRejectedValue(new Error('KMS access denied'));
+
+    await expect(runCiCommand(['node'], { check: true })).rejects.toThrow('KMS access denied');
+  });
+
   it('successfully fetches GitHub OIDC, decrypts KMS, parses vault, invokes child and scrubs memory', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c","globalDek":{"nonce":"n2","ciphertext":"c2"}}');

@@ -110,7 +110,25 @@ function createKmsProvider(cloud: CloudProvider): CloudKmsProvider {
   }
 }
 
-export async function runCiCommand(commandArgs: string[], options: { env?: string } = {}) {
+export async function runCiCommand(commandArgs: string[], options: { env?: string; check?: boolean } = {}) {
+  // --check mode: verify OIDC→KMS chain works without vault file or command execution
+  if (options.check) {
+    const cloudProvider = detectCloudProvider();
+    const ciProvider = detectCiProvider();
+
+    let jwt: string;
+    if (ciProvider === 'github') {
+      jwt = await getGithubOidcToken(getAudience(cloudProvider));
+    } else {
+      jwt = getGitlabOidcToken();
+    }
+
+    const kmsProvider = createKmsProvider(cloudProvider);
+    const result = await kmsProvider.decrypt(jwt);
+    _sodium.memzero(result);
+    return;
+  }
+
   const vaultPath = getLocalVaultPath(options.env);
   const vaultFile = getLocalVaultFile(options.env);
   if (!fs.existsSync(vaultPath)) {
