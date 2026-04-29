@@ -31,4 +31,15 @@ describe('Azure OIDC Template', () => {
   it('should throw for unsupported CI provider', () => {
     expect(() => generateAzureTemplate('circleci', 'repo', 'main')).toThrow('Unsupported CI provider');
   });
+
+  it('should include the azuread_application resource the credential references', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('resource "azuread_application" "vault"');
+  });
+
+  it('should include output block with application object id', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('output "azuread_application_object_id"');
+    expect(tf).toContain('azuread_application.vault.object_id');
+  });
 });

@@ -31,4 +31,10 @@ describe('AWS OIDC Template', () => {
   it('should throw for unsupported CI provider', () => {
     expect(() => generateAwsTemplate('circleci', 'repo', 'main')).toThrow('Unsupported CI provider');
   });
+
+  it('should include output block with role arn', () => {
+    const tf = generateAwsTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('output "vault_ci_role_arn"');
+    expect(tf).toContain('aws_iam_role.vault_ci_role.arn');
+  });
 });

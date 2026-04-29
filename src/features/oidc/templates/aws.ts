@@ -36,6 +36,10 @@ resource "aws_iam_role" "vault_ci_role${envName}" {
   name               = "vault-ci-role${envSuffix}"
   assume_role_policy = data.aws_iam_policy_document.assume_role${envName}.json
 }
+
+output "vault_ci_role_arn${envName}" {
+  value = aws_iam_role.vault_ci_role${envName}.arn
+}
 `;
   }
 
@@ -67,6 +71,10 @@ data "aws_iam_policy_document" "assume_role${envName}" {
 resource "aws_iam_role" "vault_ci_role${envName}" {
   name               = "vault-ci-role${envSuffix}"
   assume_role_policy = data.aws_iam_policy_document.assume_role${envName}.json
+}
+
+output "vault_ci_role_arn${envName}" {
+  value = aws_iam_role.vault_ci_role${envName}.arn
 }
 `;
   }

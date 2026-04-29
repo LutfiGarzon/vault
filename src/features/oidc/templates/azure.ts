@@ -7,8 +7,14 @@ export function generateAzureTemplate(ciProvider: string, repo: string, branch: 
   const normalizedCi = ciProvider.toLowerCase();
   const envName = envSuffix.replace(/-/g, '_');
 
+  const applicationBlock = `
+resource "azuread_application" "vault" {
+  display_name = "vault-oidc${envSuffix}"
+}
+`;
+
   if (normalizedCi === 'github' || normalizedCi === 'github actions') {
-    return `
+    return applicationBlock + `
 resource "azuread_application_federated_identity_credential" "github${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
@@ -17,11 +23,15 @@ resource "azuread_application_federated_identity_credential" "github${envName}" 
   issuer                = "https://token.actions.githubusercontent.com"
   subject               = "repo:${repo}:ref:refs/heads/${targetBranch}"
 }
+
+output "azuread_application_object_id${envName}" {
+  value = azuread_application.vault.object_id
+}
 `;
   }
 
   if (normalizedCi === 'gitlab' || normalizedCi === 'gitlab ci') {
-    return `
+    return applicationBlock + `
 resource "azuread_application_federated_identity_credential" "gitlab${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
@@ -29,6 +39,10 @@ resource "azuread_application_federated_identity_credential" "gitlab${envName}" 
   audiences             = ["https://gitlab.com"]
   issuer                = "https://gitlab.com"
   subject               = "project_path:${repo}:ref_type:branch:ref:${targetBranch}"
+}
+
+output "azuread_application_object_id${envName}" {
+  value = azuread_application.vault.object_id
 }
 `;
   }
