@@ -20,6 +20,7 @@ describe('OIDC Command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+    vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT')); // file does not exist by default
     vi.mocked(tui.runTui).mockResolvedValue({
       cloudProvider: 'aws',
       ciProvider: 'github',
@@ -111,5 +112,44 @@ describe('OIDC Command', () => {
     vi.mocked(fs.writeFile).mockRejectedValue(new Error('EACCES: permission denied'));
 
     await expect(runOidcCommand()).rejects.toThrow('Failed to write');
+  });
+
+  it('should prompt before overwriting existing file', async () => {
+    vi.mocked(fs.access).mockResolvedValue(undefined); // file exists
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined); // write succeeds
+    vi.mocked(p.confirm).mockResolvedValue(true); // user confirms
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/mock/dir');
+
+    await runOidcCommand();
+
+    expect(p.confirm).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining('vault-oidc-aws.tf')
+    }));
+    expect(fs.writeFile).toHaveBeenCalled();
+    cwdSpy.mockRestore();
+  });
+
+  it('should skip overwrite when user declines', async () => {
+    vi.mocked(fs.access).mockResolvedValue(undefined); // file exists
+    vi.mocked(p.confirm).mockResolvedValue(false); // user declines
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/mock/dir');
+
+    await runOidcCommand();
+
+    expect(p.confirm).toHaveBeenCalled();
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    cwdSpy.mockRestore();
+  });
+
+  it('should skip prompt when --force is passed', async () => {
+    vi.mocked(fs.access).mockResolvedValue(undefined); // file exists
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined); // write succeeds
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/mock/dir');
+
+    await runOidcCommand({ force: true });
+
+    expect(p.confirm).not.toHaveBeenCalled();
+    expect(fs.writeFile).toHaveBeenCalled();
+    cwdSpy.mockRestore();
   });
 });

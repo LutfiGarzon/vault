@@ -1,8 +1,6 @@
 export function generateGcpTemplate(ciProvider: string, repo: string, branch: string, env?: string): string {
   const envSuffix = env ? `-${env}` : '';
-  let targetBranch = branch;
-  if (env === 'prod') targetBranch = 'main';
-  else if (env === 'qa') targetBranch = 'release/*';
+  const targetBranch = branch;
 
   const normalizedCi = ciProvider.toLowerCase();
   const envName = envSuffix.replace(/-/g, '_');

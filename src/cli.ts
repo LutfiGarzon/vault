@@ -141,9 +141,10 @@ export function runCli() {
   program
     .command('oidc')
     .description('Setup OpenID Connect trust policies for CI/CD environments')
-    .action(() => {
+    .option('-f, --force', 'Overwrite existing .tf file without prompting')
+    .action((options) => {
       const globalOpts = program.opts();
-      runOidcCommand({ env: globalOpts.env }).catch(err => {
+      runOidcCommand({ env: globalOpts.env, force: options.force }).catch(err => {
         console.error(err);
         process.exit(1);
       });

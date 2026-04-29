@@ -14,7 +14,7 @@ describe('OIDC TUI', () => {
     vi.mocked(p.isCancel).mockImplementation((val: any) => val === cancelSymbol);
   });
 
-  it('should validate wildcard branch', async () => {
+  it('should validate branch is non-empty and allow wildcards', async () => {
     let branchValidator: any;
     vi.mocked(p.text).mockImplementation((opts: any) => {
       if (opts.message.includes('branch constraint')) {
@@ -27,7 +27,8 @@ describe('OIDC TUI', () => {
 
     await runTui();
     expect(branchValidator).toBeDefined();
-    expect(branchValidator('*')).toBe('Wildcard branch permissions are forbidden by default.');
+    expect(branchValidator('*')).toBeUndefined();
+    expect(branchValidator('release/*')).toBeUndefined();
     expect(branchValidator('main')).toBeUndefined();
     expect(branchValidator('')).toBe('Branch is required');
   });

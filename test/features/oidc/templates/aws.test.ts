@@ -9,15 +9,15 @@ describe('AWS OIDC Template', () => {
     expect(tf).toContain('aws_iam_openid_connect_provider');
   });
 
-  it('should strictly map prod environment to main branch', () => {
+  it('should respect user branch regardless of prod environment', () => {
     const tf = generateAwsTemplate('github', 'octocat/my-repo', 'feature-branch', 'prod');
-    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/feature-branch');
     expect(tf).toContain('vault-ci-role-prod');
   });
 
-  it('should strictly map qa environment to release/* branch', () => {
+  it('should respect user branch regardless of qa environment', () => {
     const tf = generateAwsTemplate('github', 'octocat/my-repo', 'feature-branch', 'qa');
-    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/release/*');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/feature-branch');
     expect(tf).toContain('vault-ci-role-qa');
   });
 

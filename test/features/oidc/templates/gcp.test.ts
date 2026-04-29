@@ -10,15 +10,15 @@ describe('GCP OIDC Template', () => {
     expect(tf).toContain('https://token.actions.githubusercontent.com');
   });
 
-  it('should strictly map prod environment to main branch', () => {
+  it('should respect user branch regardless of prod environment', () => {
     const tf = generateGcpTemplate('github', 'octocat/my-repo', 'feature-branch', 'prod');
-    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/main');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/feature-branch');
     expect(tf).toContain('vault-pool-prod');
   });
 
-  it('should strictly map qa environment to release/* branch', () => {
+  it('should respect user branch regardless of qa environment', () => {
     const tf = generateGcpTemplate('github', 'octocat/my-repo', 'feature-branch', 'qa');
-    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/release/*');
+    expect(tf).toContain('repo:octocat/my-repo:ref:refs/heads/feature-branch');
     expect(tf).toContain('vault-pool-qa');
   });
 

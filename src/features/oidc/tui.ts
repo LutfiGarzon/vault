@@ -53,7 +53,6 @@ export async function runTui(env?: string): Promise<OidcAnswers> {
     message: 'Enter the branch constraint (e.g. main):',
     validate: (val) => {
       if (!val || val.trim().length === 0) return 'Branch is required';
-      if (val.includes('*')) return 'Wildcard branch permissions are forbidden by default.';
       return;
     }
   });
