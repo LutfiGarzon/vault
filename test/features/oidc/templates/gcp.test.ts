@@ -42,4 +42,14 @@ describe('GCP OIDC Template', () => {
     const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
     expect(tf).toContain('google_service_account_iam_member');
   });
+
+  it('should include the project_id variable', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('variable "project_id"');
+  });
+
+  it('should include the google_service_account resource', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('resource "google_service_account" "vault"');
+  });
 });

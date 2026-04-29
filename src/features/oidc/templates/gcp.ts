@@ -8,6 +8,15 @@ export function generateGcpTemplate(ciProvider: string, repo: string, branch: st
   const envName = envSuffix.replace(/-/g, '_');
 
   const poolBlock = `
+variable "project_id" {
+  type = string
+}
+
+resource "google_service_account" "vault" {
+  account_id   = "vault-oidc-sa"
+  display_name = "Vault OIDC Service Account"
+}
+
 resource "google_iam_workload_identity_pool" "vault${envName}" {
   workload_identity_pool_id = "vault-pool${envSuffix}"
 }
