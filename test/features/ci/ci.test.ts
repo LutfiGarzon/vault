@@ -53,6 +53,79 @@ describe('CI Command', () => {
     await expect(runCiCommand(['node'])).rejects.toThrow('Unrecognized CI environment');
   });
 
+  it('throws if multiple cloud providers are set without VAULT_CLOUD_PROVIDER', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_AWS_ROLE_ARN = 'arn:dummy';
+    process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
+    process.env.VAULT_AZURE_TENANT_ID = 'tenant';
+
+    await expect(runCiCommand(['node'])).rejects.toThrow('VAULT_CLOUD_PROVIDER');
+  });
+
+  it('throws if VAULT_CLOUD_PROVIDER specifies a cloud without its required vars', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_CLOUD_PROVIDER = 'azure';
+    // No Azure env vars set
+
+    await expect(runCiCommand(['node'])).rejects.toThrow('VAULT_AZURE');
+  });
+
+  it('uses VAULT_CLOUD_PROVIDER to disambiguate when multiple are set', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_AWS_ROLE_ARN = 'arn:dummy';
+    process.env.VAULT_KMS_CIPHERTEXT = 'aws-cipher';
+    process.env.VAULT_AZURE_TENANT_ID = 'tenant';
+    process.env.VAULT_AZURE_CLIENT_ID = 'client';
+    process.env.VAULT_AZURE_KEY_VAULT_URL = 'https://vault.azure.net';
+    process.env.VAULT_AZURE_KEY_NAME = 'key';
+    process.env.VAULT_AZURE_CIPHERTEXT = 'azure-cipher';
+    process.env.VAULT_CLOUD_PROVIDER = 'azure';
+
+    vi.mocked(github.getGithubOidcToken).mockResolvedValue('jwt');
+    const dummyGmk = new Uint8Array([1, 1, 1]);
+    const mockDecrypt = vi.fn().mockResolvedValue(dummyGmk);
+    vi.mocked(azure.AzureKeyVaultProvider).mockImplementation(function(this: any) {
+      this.name = 'azure';
+      this.decrypt = mockDecrypt;
+      return this;
+    } as any);
+    vi.mocked(envelope.decryptLocalVault).mockResolvedValue('KEY=val');
+    vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+
+    await runCiCommand(['node']);
+
+    // Should use Azure despite AWS vars also being set
+    expect(mockDecrypt).toHaveBeenCalledWith('jwt');
+    expect(github.getGithubOidcToken).toHaveBeenCalledWith('api://AzureADTokenExchange');
+  });
+
+  it('throws if Azure env vars are incomplete', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_AZURE_TENANT_ID = 'tenant';
+    // Missing VAULT_AZURE_CLIENT_ID
+
+    await expect(runCiCommand(['node'])).rejects.toThrow('VAULT_AZURE_CLIENT_ID');
+  });
+
+  it('throws if GCP env vars are incomplete', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c"}');
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.VAULT_GCP_PROJECT_NUMBER = '123';
+    process.env.VAULT_GCP_POOL_ID = 'pool';
+    process.env.VAULT_GCP_PROVIDER_ID = 'provider';
+    // Missing VAULT_GCP_KMS_KEY_RING
+
+    await expect(runCiCommand(['node'])).rejects.toThrow('VAULT_GCP_KMS_KEY_RING');
+  });
+
   it('successfully fetches GitHub OIDC, decrypts KMS, parses vault, invokes child and scrubs memory', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue('{"nonce":"n","ciphertext":"c","globalDek":{"nonce":"n2","ciphertext":"c2"}}');

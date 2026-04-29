@@ -80,4 +80,16 @@ describe('GCP OIDC Template', () => {
       throw e;
     }
   });
+
+  it('should have no dangling references — all refs target defined resources', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    // Project ID variable is defined and referenced
+    expect(tf).toContain('variable "project_id"');
+    expect(tf).toContain('var.project_id');
+    // SA is defined and referenced
+    expect(tf).toContain('resource "google_service_account" "vault"');
+    expect(tf).toContain('google_service_account.vault.name');
+    // Pool is defined and referenced
+    expect(tf).toContain('google_iam_workload_identity_pool.vault.workload_identity_pool_id');
+  });
 });

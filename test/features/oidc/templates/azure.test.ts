@@ -65,4 +65,14 @@ describe('Azure OIDC Template', () => {
       throw e;
     }
   });
+
+  it('should have no dangling references — all refs target defined resources', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
+    // Application is defined and referenced
+    expect(tf).toContain('resource "azuread_application" "vault"');
+    expect(tf).toContain('azuread_application.vault.object_id');
+    expect(tf).toContain('azuread_application.vault.client_id');
+    // Service principal is defined
+    expect(tf).toContain('resource "azuread_service_principal" "vault"');
+  });
 });

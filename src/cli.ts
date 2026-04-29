@@ -152,7 +152,11 @@ export function runCli() {
 
   program
     .command('ci')
-    .description('Headless execution runner for CI environments utilizing OIDC to decrypt the vault')
+    .description(
+      'Headless CI runner: uses OIDC to authenticate to cloud KMS, decrypts the vault, and executes a command.\n' +
+      'Set cloud provider via env vars: VAULT_AWS_ROLE_ARN, VAULT_AZURE_TENANT_ID, or VAULT_GCP_PROJECT_NUMBER.\n' +
+      'Use VAULT_CLOUD_PROVIDER to disambiguate if multiple are set.'
+    )
     .argument('<command...>', 'Command to execute inside CI')
     .passThroughOptions()
     .action((commandArgs: string[]) => {

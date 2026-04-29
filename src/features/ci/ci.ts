@@ -22,9 +22,33 @@ function detectCiProvider(): CiProvider {
 }
 
 function detectCloudProvider(): CloudProvider {
-  if (process.env.VAULT_AWS_ROLE_ARN) return 'aws';
-  if (process.env.VAULT_AZURE_TENANT_ID) return 'azure';
-  if (process.env.VAULT_GCP_PROJECT_NUMBER) return 'gcp';
+  const hasAws = !!process.env.VAULT_AWS_ROLE_ARN;
+  const hasAzure = !!process.env.VAULT_AZURE_TENANT_ID;
+  const hasGcp = !!process.env.VAULT_GCP_PROJECT_NUMBER;
+
+  const explicit = process.env.VAULT_CLOUD_PROVIDER?.toLowerCase();
+
+  // If user explicitly set VAULT_CLOUD_PROVIDER, use it (validates required vars later)
+  if (explicit) {
+    if (explicit === 'aws') return 'aws';
+    if (explicit === 'azure') return 'azure';
+    if (explicit === 'gcp') return 'gcp';
+    throw new Error(`Invalid VAULT_CLOUD_PROVIDER: "${explicit}". Must be aws, azure, or gcp.`);
+  }
+
+  // If multiple cloud providers have their vars set, require explicit selection
+  const count = [hasAws, hasAzure, hasGcp].filter(Boolean).length;
+  if (count > 1) {
+    throw new Error(
+      'Multiple cloud provider environment variables detected. ' +
+      'Set VAULT_CLOUD_PROVIDER=aws|azure|gcp to disambiguate.'
+    );
+  }
+
+  if (hasAws) return 'aws';
+  if (hasAzure) return 'azure';
+  if (hasGcp) return 'gcp';
+
   throw new Error(
     'No cloud provider configured. Set VAULT_AWS_ROLE_ARN, VAULT_AZURE_TENANT_ID, or VAULT_GCP_PROJECT_NUMBER.'
   );

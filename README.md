@@ -162,6 +162,45 @@ terraform apply -var="project_id=$GCP_PROJECT_ID"  # GCP only
 terraform apply  # AWS / Azure
 ```
 
+### CI Runtime (vault ci)
+
+Inside your CI pipeline, `vault ci` uses OIDC to decrypt secrets at runtime. Configure these environment variables in your CI secrets:
+
+**AWS**
+```bash
+VAULT_AWS_ROLE_ARN=arn:aws:iam::123456789:role/vault-ci-role
+VAULT_KMS_CIPHERTEXT=base64-encrypted-kms-ciphertext
+```
+
+**Azure**
+```bash
+VAULT_AZURE_TENANT_ID=your-tenant-id
+VAULT_AZURE_CLIENT_ID=your-app-registration-client-id
+VAULT_AZURE_KEY_VAULT_URL=https://myvault.vault.azure.net
+VAULT_AZURE_KEY_NAME=my-key
+VAULT_AZURE_CIPHERTEXT=base64-encrypted-ciphertext
+# Optional: override auto-detection
+# VAULT_CLOUD_PROVIDER=azure
+```
+> **GitLab users:** Configure your `.gitlab-ci.yml` `id_tokens` with audience `api://AzureADTokenExchange` for the Azure path.
+
+**GCP**
+```bash
+VAULT_GCP_PROJECT_NUMBER=123456789
+VAULT_GCP_POOL_ID=vault-pool
+VAULT_GCP_PROVIDER_ID=github
+VAULT_GCP_PROJECT_ID=my-project            # defaults to PROJECT_NUMBER
+VAULT_GCP_KMS_LOCATION=global               # defaults to global
+VAULT_GCP_KMS_KEY_RING=my-keyring
+VAULT_GCP_KMS_KEY_NAME=my-key
+VAULT_GCP_CIPHERTEXT=base64-encrypted-ciphertext
+```
+
+**Disambiguation:** If multiple cloud env vars are set, use:
+```bash
+VAULT_CLOUD_PROVIDER=aws|azure|gcp
+```
+
 ---
 
 ## › Agent Mode (AI Support)

@@ -62,4 +62,17 @@ describe('AWS OIDC Template', () => {
       throw e;
     }
   });
+
+  it('should have no dangling references — all refs target defined resources', () => {
+    const tf = generateAwsTemplate('github', 'octocat/my-repo', 'main');
+    // Provider is defined and referenced
+    expect(tf).toContain('resource "aws_iam_openid_connect_provider" "github"');
+    expect(tf).toContain('aws_iam_openid_connect_provider.github.arn');
+    // Role is defined and referenced in output
+    expect(tf).toContain('resource "aws_iam_role" "vault_ci_role"');
+    expect(tf).toContain('aws_iam_role.vault_ci_role.arn');
+    // Policy document is defined and referenced
+    expect(tf).toContain('data "aws_iam_policy_document" "assume_role"');
+    expect(tf).toContain('data.aws_iam_policy_document.assume_role.json');
+  });
 });
