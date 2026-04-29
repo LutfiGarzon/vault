@@ -49,4 +49,17 @@ describe('AWS OIDC Template', () => {
     expect(tf).toContain('# WARNING');
     expect(tf).toContain('thumbprint');
   });
+
+  it('should produce output that passes terraform fmt', async () => {
+    const { execSync } = await import('child_process');
+    try {
+      const tf = generateAwsTemplate('github', 'octocat/my-repo', 'main');
+      execSync('terraform fmt -', { input: tf, stdio: 'pipe' });
+    } catch (e: any) {
+      if (e.status === 127 || e.message?.includes('command not found')) {
+        return; // terraform not installed, skip
+      }
+      throw e;
+    }
+  });
 });

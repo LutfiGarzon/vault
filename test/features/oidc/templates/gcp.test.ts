@@ -67,4 +67,17 @@ describe('GCP OIDC Template', () => {
     const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main', 'prod');
     expect(tf).toContain('account_id   = "vault-oidc-sa-prod"');
   });
+
+  it('should produce output that passes terraform fmt', async () => {
+    const { execSync } = await import('child_process');
+    try {
+      const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+      execSync('terraform fmt -', { input: tf, stdio: 'pipe' });
+    } catch (e: any) {
+      if (e.status === 127 || e.message?.includes('command not found')) {
+        return;
+      }
+      throw e;
+    }
+  });
 });

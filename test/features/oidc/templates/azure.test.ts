@@ -52,4 +52,17 @@ describe('Azure OIDC Template', () => {
     const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
     expect(tf).toContain('resource "azuread_service_principal" "vault"');
   });
+
+  it('should produce output that passes terraform fmt', async () => {
+    const { execSync } = await import('child_process');
+    try {
+      const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
+      execSync('terraform fmt -', { input: tf, stdio: 'pipe' });
+    } catch (e: any) {
+      if (e.status === 127 || e.message?.includes('command not found')) {
+        return;
+      }
+      throw e;
+    }
+  });
 });

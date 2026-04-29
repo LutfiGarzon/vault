@@ -16,8 +16,7 @@ resource "azuread_service_principal" "vault" {
 `;
 
   if (normalizedCi === 'github' || normalizedCi === 'github actions') {
-    return applicationBlock + `
-resource "azuread_application_federated_identity_credential" "github${envName}" {
+    return applicationBlock + `resource "azuread_application_federated_identity_credential" "github${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
   description           = "Deployments for GitHub Actions"
@@ -33,8 +32,7 @@ output "azuread_application_object_id${envName}" {
   }
 
   if (normalizedCi === 'gitlab' || normalizedCi === 'gitlab ci') {
-    return applicationBlock + `
-# NOTE: Ensure your GitLab CI id_tokens configuration uses audience "api://AzureADTokenExchange"
+    return applicationBlock + `# NOTE: Ensure your GitLab CI id_tokens configuration uses audience "api://AzureADTokenExchange"
 resource "azuread_application_federated_identity_credential" "gitlab${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
