@@ -13,7 +13,7 @@ variable "project_id" {
 }
 
 resource "google_service_account" "vault" {
-  account_id   = "vault-oidc-sa"
+  account_id   = "vault-oidc-sa${envSuffix}"
   display_name = "Vault OIDC Service Account"
 }
 
@@ -29,7 +29,9 @@ resource "google_iam_workload_identity_pool_provider" "github${envName}" {
   workload_identity_pool_provider_id = "github${envSuffix}"
   display_name                       = "GitHub Actions"
   attribute_mapping = {
-    "google.subject" = "assertion.sub"
+    "google.subject"       = "assertion.sub"
+    "attribute.repository" = "assertion.repository"
+    "attribute.actor"      = "assertion.actor"
   }
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -51,7 +53,9 @@ resource "google_iam_workload_identity_pool_provider" "gitlab${envName}" {
   workload_identity_pool_provider_id = "gitlab${envSuffix}"
   display_name                       = "GitLab CI"
   attribute_mapping = {
-    "google.subject" = "assertion.sub"
+    "google.subject"         = "assertion.sub"
+    "attribute.project_path" = "assertion.project_path"
+    "attribute.ref"          = "assertion.ref"
   }
   oidc {
     issuer_uri = "https://gitlab.com"

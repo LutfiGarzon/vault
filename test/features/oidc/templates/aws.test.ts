@@ -37,4 +37,16 @@ describe('AWS OIDC Template', () => {
     expect(tf).toContain('output "vault_ci_role_arn"');
     expect(tf).toContain('aws_iam_role.vault_ci_role.arn');
   });
+
+  it('should include a thumbprint warning comment for github', () => {
+    const tf = generateAwsTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('# WARNING');
+    expect(tf).toContain('thumbprint');
+  });
+
+  it('should include a thumbprint warning comment for gitlab', () => {
+    const tf = generateAwsTemplate('gitlab', 'mygroup/my-project', 'main');
+    expect(tf).toContain('# WARNING');
+    expect(tf).toContain('thumbprint');
+  });
 });

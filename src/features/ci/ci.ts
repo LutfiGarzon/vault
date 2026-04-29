@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 import _sodium from 'libsodium-wrappers';
 import { getGithubOidcToken } from '../oidc/providers/github.js';
 import { getGitlabOidcToken } from '../oidc/providers/gitlab.js';
+// NOTE: vault ci currently only supports AWS KMS for decrypting the vault.
+// While `vault oidc` can generate trust policies for AWS, Azure, and GCP,
+// the runtime decryption path is AWS-only. Azure/GCP runtime support is planned.
 import { decryptWithAwsKms } from '../oidc/providers/aws.js';
 import { decryptLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { execWithEnv } from '../../core/exec.js';

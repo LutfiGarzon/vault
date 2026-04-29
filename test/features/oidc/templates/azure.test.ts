@@ -42,4 +42,14 @@ describe('Azure OIDC Template', () => {
     expect(tf).toContain('output "azuread_application_object_id"');
     expect(tf).toContain('azuread_application.vault.object_id');
   });
+
+  it('should use api://AzureADTokenExchange audience for gitlab (same as github)', () => {
+    const tf = generateAzureTemplate('gitlab', 'mygroup/my-project', 'main');
+    expect(tf).toContain('audiences             = ["api://AzureADTokenExchange"]');
+  });
+
+  it('should include the azuread_service_principal resource', () => {
+    const tf = generateAzureTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('resource "azuread_service_principal" "vault"');
+  });
 });

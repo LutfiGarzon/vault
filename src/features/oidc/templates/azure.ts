@@ -11,6 +11,10 @@ export function generateAzureTemplate(ciProvider: string, repo: string, branch: 
 resource "azuread_application" "vault" {
   display_name = "vault-oidc${envSuffix}"
 }
+
+resource "azuread_service_principal" "vault" {
+  client_id = azuread_application.vault.client_id
+}
 `;
 
   if (normalizedCi === 'github' || normalizedCi === 'github actions') {
@@ -32,11 +36,12 @@ output "azuread_application_object_id${envName}" {
 
   if (normalizedCi === 'gitlab' || normalizedCi === 'gitlab ci') {
     return applicationBlock + `
+# NOTE: Ensure your GitLab CI id_tokens configuration uses audience "api://AzureADTokenExchange"
 resource "azuread_application_federated_identity_credential" "gitlab${envName}" {
   application_object_id = azuread_application.vault.object_id
   display_name          = "vault-ci-role${envSuffix}"
   description           = "Deployments for GitLab CI"
-  audiences             = ["https://gitlab.com"]
+  audiences             = ["api://AzureADTokenExchange"]
   issuer                = "https://gitlab.com"
   subject               = "project_path:${repo}:ref_type:branch:ref:${targetBranch}"
 }

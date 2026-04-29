@@ -52,4 +52,19 @@ describe('GCP OIDC Template', () => {
     const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
     expect(tf).toContain('resource "google_service_account" "vault"');
   });
+
+  it('should include attribute.repository in mapping for github', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main');
+    expect(tf).toContain('"attribute.repository" = "assertion.repository"');
+  });
+
+  it('should include attribute.project_path in mapping for gitlab', () => {
+    const tf = generateGcpTemplate('gitlab', 'mygroup/my-project', 'main');
+    expect(tf).toContain('"attribute.project_path" = "assertion.project_path"');
+  });
+
+  it('should include env suffix in service account account_id', () => {
+    const tf = generateGcpTemplate('github', 'octocat/my-repo', 'main', 'prod');
+    expect(tf).toContain('account_id   = "vault-oidc-sa-prod"');
+  });
 });
