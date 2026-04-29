@@ -135,6 +135,33 @@ echo $MY_SECRET
 exit
 ```
 
+### 11. OIDC Setup (CI/CD Trust Policy)
+Generate Terraform templates to establish OIDC-based trust between your CI provider and cloud provider. This allows your CI pipelines to authenticate via OpenID Connect instead of long-lived cloud credentials.
+
+```bash
+# Interactive wizard
+vault oidc
+
+# With environment suffix (generates vault-oidc-aws-prod.tf)
+vault oidc --env prod
+```
+
+**Supported cloud providers:** AWS, Azure, GCP  
+**Supported CI providers:** GitHub Actions, GitLab CI
+
+| Cloud | Terraform resources created |
+|-------|----------------------------|
+| AWS | IAM OIDC provider, trust policy, IAM role, role ARN output |
+| Azure | Azure AD application, federated identity credential, object ID output |
+| GCP | Workload identity pool, pool provider, service account, IAM binding, `project_id` variable |
+
+After generating the template, apply it with:
+```bash
+terraform init
+terraform apply -var="project_id=$GCP_PROJECT_ID"  # GCP only
+terraform apply  # AWS / Azure
+```
+
 ---
 
 ## › Agent Mode (AI Support)
@@ -149,10 +176,13 @@ Vault is designed for the age of AI. When you run an agent with Vault (e.g., `va
 
 ## › Contributing & Forking
 
-This project is built with a **feature-first modular architecture**. To add a new command:
-1.  Create `src/features/your-feature/your-feature.ts` for logic.
-2.  Create `src/features/your-feature/tui.ts` for interactions.
+This project is built with a **feature-first modular architecture** and follows TDD (Test-Driven Development). To add a new command:
+1.  Write failing tests in `test/features/your-feature/`.
+2.  Create `src/features/your-feature/` for logic, TUI, templates, and providers.
 3.  Add the route to `src/cli.ts`.
+4.  Run `npm test` to ensure all tests pass and coverage thresholds are met.
+
+See `src/features/oidc/` for a complete example of a feature with templates, providers, and full test coverage.
 
 ---
 
