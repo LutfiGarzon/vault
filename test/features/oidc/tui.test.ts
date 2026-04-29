@@ -6,9 +6,12 @@ vi.mock('@clack/prompts');
 
 describe('OIDC TUI', () => {
   let exitSpy: any;
+  const cancelSymbol = Symbol('cancel');
+
   beforeEach(() => {
     vi.clearAllMocks();
     exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+    vi.mocked(p.isCancel).mockImplementation((val: any) => val === cancelSymbol);
   });
 
   it('should validate wildcard branch', async () => {
@@ -47,15 +50,64 @@ describe('OIDC TUI', () => {
     });
   });
 
-  it('should exit 0 if cancelled at any prompt', async () => {
-    vi.mocked(p.select).mockResolvedValueOnce(p.isCancel as any);
-    vi.mocked(p.isCancel).mockReturnValue(true);
+  it('should throw on cancellation instead of calling process.exit', async () => {
+    vi.mocked(p.select).mockResolvedValueOnce(cancelSymbol as any);
 
-    try {
-      await runTui();
-    } catch {}
-    
-    expect(exitSpy).toHaveBeenCalledWith(0);
-    expect(p.cancel).toHaveBeenCalled();
+    await expect(runTui()).rejects.toThrow('Operation cancelled');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should throw when CI provider selection is cancelled', async () => {
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('aws')
+      .mockResolvedValueOnce(cancelSymbol as any);
+
+    await expect(runTui()).rejects.toThrow('Operation cancelled');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should throw when repo input is cancelled', async () => {
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('aws')
+      .mockResolvedValueOnce('github');
+    vi.mocked(p.text).mockResolvedValueOnce(cancelSymbol as any);
+
+    await expect(runTui()).rejects.toThrow('Operation cancelled');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should throw when branch input is cancelled', async () => {
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('aws')
+      .mockResolvedValueOnce('github');
+    vi.mocked(p.text)
+      .mockResolvedValueOnce('octocat/my-repo')
+      .mockResolvedValueOnce(cancelSymbol as any);
+
+    await expect(runTui()).rejects.toThrow('Operation cancelled');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should validate repo format (owner/repo)', async () => {
+    let repoValidator: any;
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.text).mockImplementation((opts: any) => {
+      if (opts.message.includes('target repository')) {
+        repoValidator = opts.validate;
+        return Promise.resolve('octocat/my-repo');
+      }
+      return Promise.resolve('main');
+    });
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('aws')
+      .mockResolvedValueOnce('github');
+
+    await runTui();
+    expect(repoValidator).toBeDefined();
+    expect(repoValidator('')).toBe('Repository is required');
+    expect(repoValidator('myrepo')).toContain('must be in the format');
+    expect(repoValidator('/')).toContain('must be in the format');
+    expect(repoValidator('owner/repo')).toBeUndefined();
+    expect(repoValidator('org/sub/repo')).toBeUndefined();
   });
 });
