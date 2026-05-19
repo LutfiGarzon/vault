@@ -132,7 +132,9 @@ export async function decryptLocalVault(payload: LocalVaultPayload, gmk: Uint8Ar
   const plaintext = sodium.crypto_secretbox_open_easy(payloadCiphertext, payloadNonce, dek);
 
   sodium.memzero(dek);
-  return sodium.to_string(plaintext);
+  const decryptedString = sodium.to_string(plaintext);
+  sodium.memzero(plaintext);
+  return decryptedString;
 }
 
 export async function generateRecoveryKey(): Promise<string> {
