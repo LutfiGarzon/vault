@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { resolveGlobalMasterKey } from '../../core/run.js';
 import { decryptLocalVault, generateLocalVault, LocalVaultPayload } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
-import { getLocalVaultPath, getLocalVaultFile } from '../../core/vault-file.js';
+import { getLocalVaultPath, getLocalVaultFile, writeVaultAtomic } from '../../core/vault-file.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import { promptForValue } from './tui.js';
 import _sodium from 'libsodium-wrappers';
@@ -56,8 +56,7 @@ export async function addCommand(key: string, valueArg: string | undefined, opti
   const newPayload = await generateLocalVault(plainTextPayload, gmk);
   _sodium.memzero(gmk);
   
-  fs.mkdirSync(path.dirname(vaultPath), { recursive: true });
-  fs.writeFileSync(vaultPath, JSON.stringify(newPayload, null, 2), 'utf-8');
+  writeVaultAtomic(vaultPath, newPayload);
   
   const target = isGlobal ? 'global vault' : getLocalVaultFile(options.env);
   log.success(`Successfully set ${Flexoki.blue(key)} in ${target}.`);
