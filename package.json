@@ -35,19 +35,19 @@
   },
   "homepage": "https://github.com/LutfiGarzon/vault#readme",
   "dependencies": {
-    "@clack/prompts": "^1.2.0",
-    "commander": "^14.0.3",
-    "dotenv": "^17.4.1",
-    "libsodium-wrappers": "npm:libsodium-wrappers-sumo@^0.8.3",
-    "libsodium-wrappers-sumo": "^0.8.3"
+    "@clack/prompts": "1.2.0",
+    "commander": "14.0.3",
+    "dotenv": "17.4.1",
+    "libsodium-wrappers": "npm:libsodium-wrappers-sumo@0.8.3",
+    "libsodium-wrappers-sumo": "0.8.3"
   },
   "devDependencies": {
-    "@semantic-release/git": "^10.0.1",
-    "@types/libsodium-wrappers": "npm:@types/libsodium-wrappers-sumo@^0.7.8",
-    "@types/node": "^25.6.0",
-    "@vitest/coverage-v8": "^4.1.4",
-    "semantic-release": "^24.2.9",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "@semantic-release/git": "10.0.1",
+    "@types/libsodium-wrappers": "npm:@types/libsodium-wrappers-sumo@0.7.8",
+    "@types/node": "25.6.0",
+    "@vitest/coverage-v8": "4.1.4",
+    "semantic-release": "24.2.9",
+    "typescript": "6.0.2",
+    "vitest": "4.1.4"
   }
 }
