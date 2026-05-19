@@ -44,7 +44,7 @@ export async function ingestCommand(filepath: string, options: { dryRun?: boolea
     const nonceBytes = sodium.from_hex(payload.nonce);
     const cipherBytes = sodium.from_hex(payload.ciphertext);
 
-    const key = await deriveKey(otp, saltBytes);
+    const key = await deriveKey(otp, saltBytes, payload.opslimit, payload.memlimit);
     plainTextPayload = await decryptPayload(cipherBytes, nonceBytes, key);
     
     sodium.memzero(key);
