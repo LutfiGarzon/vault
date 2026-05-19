@@ -44,7 +44,13 @@ export async function shareCommand(options: { env?: string } = {}) {
 
   try {
     const otp = await promptForOtp();
-    const sharedPayload = await encryptPayload(plainTextPayload, otp);
+    await _sodium.ready;
+    const sharedPayload = await encryptPayload(
+      plainTextPayload,
+      otp,
+      _sodium.crypto_pwhash_OPSLIMIT_SENSITIVE,
+      _sodium.crypto_pwhash_MEMLIMIT_SENSITIVE
+    );
 
     const sharedPath = path.resolve(process.cwd(), SHARED_FILE);
     fs.writeFileSync(sharedPath, JSON.stringify(sharedPayload, null, 2), 'utf-8');

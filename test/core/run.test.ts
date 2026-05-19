@@ -146,7 +146,15 @@ describe('Run Core', () => {
       await createLocalVault('SECRET=test', 'password');
 
       expect(envelope.generateLocalVault).toHaveBeenCalledWith('SECRET=test', mockGmk);
-      expect(fs.writeFileSync).toHaveBeenCalledWith('/mock/path/.env.vault', JSON.stringify(mockPayload, null, 2), 'utf-8');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/mock\/path\/\.env\.vault\..+\.tmp$/),
+        JSON.stringify(mockPayload, null, 2),
+        'utf-8'
+      );
+      expect(fs.renameSync).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/mock\/path\/\.env\.vault\..+\.tmp$/),
+        '/mock/path/.env.vault'
+      );
     });
   });
 

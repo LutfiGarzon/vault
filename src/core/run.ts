@@ -18,7 +18,7 @@ import { storeHardwareKey, retrieveHardwareKey } from './hardware-key.js';
 import { createSession, resolveSession, destroySession } from './session.js';
 import { Flexoki, log } from '../features/tui/components/theme.js';
 
-import { getLocalVaultFile, getLocalVaultPath } from './vault-file.js';
+import { getLocalVaultFile, getLocalVaultPath, writeVaultAtomic } from './vault-file.js';
 
 export async function resolveGlobalMasterKey(providedPassword?: string, env?: string): Promise<Uint8Array> {
   // 1. Check for Active Session (Agent Mode / Recursive call)
@@ -103,7 +103,7 @@ export async function createLocalVault(plainTextPayload: string, providedPasswor
   const payload = await generateLocalVault(plainTextPayload, gmk);
 
   const vaultPath = getLocalVaultPath(env);
-  fs.writeFileSync(vaultPath, JSON.stringify(payload, null, 2), 'utf-8');
+  writeVaultAtomic(vaultPath, payload);
 
   _sodium.memzero(gmk);
   p.outro(Flexoki.green(`✔ Vault successfully initialized at ${getLocalVaultFile(env)}`));

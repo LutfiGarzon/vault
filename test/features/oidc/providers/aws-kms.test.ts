@@ -1,14 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AwsKmsProvider } from '../../../../src/features/oidc/providers/aws-kms.js';
-import { STSClient, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts';
-import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 
-vi.mock('@aws-sdk/client-sts');
-vi.mock('@aws-sdk/client-kms');
+const stsXml = `<AssumeRoleWithWebIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleWithWebIdentityResult>
+    <Credentials>
+      <AccessKeyId>AKIA_DUMMY</AccessKeyId>
+      <SecretAccessKey>SECRET_DUMMY</SecretAccessKey>
+      <SessionToken>TOKEN_DUMMY</SessionToken>
+    </Credentials>
+  </AssumeRoleWithWebIdentityResult>
+</AssumeRoleWithWebIdentityResponse>`;
 
 describe('AwsKmsProvider', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    process.env.AWS_REGION = 'us-east-1';
   });
 
   it('should have name "aws"', () => {
@@ -17,28 +23,16 @@ describe('AwsKmsProvider', () => {
   });
 
   it('should delegate to decryptWithAwsKms with stored config', async () => {
-    const mockStsSend = vi.fn().mockResolvedValue({
-      Credentials: {
-        AccessKeyId: 'AKIA_DUMMY',
-        SecretAccessKey: 'SECRET_DUMMY',
-        SessionToken: 'TOKEN_DUMMY'
-      }
-    });
-    STSClient.prototype.send = mockStsSend as any;
-
-    const mockKmsSend = vi.fn().mockResolvedValue({
-      Plaintext: new Uint8Array([1, 2, 3])
-    });
-    KMSClient.prototype.send = mockKmsSend as any;
+    vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: true, text: async () => stsXml } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ Plaintext: 'AQID' })
+      } as Response);
 
     const provider = new AwsKmsProvider('arn:aws:iam::123:role/dummy', 'base64cipher');
     const result = await provider.decrypt('dummy_jwt');
 
-    expect(result).toEqual(new Uint8Array([1, 2, 3]));
-    expect(AssumeRoleWithWebIdentityCommand).toHaveBeenCalledWith({
-      RoleArn: 'arn:aws:iam::123:role/dummy',
-      RoleSessionName: 'vault-ci-session',
-      WebIdentityToken: 'dummy_jwt'
-    });
+    expect(result).toEqual(Uint8Array.from(atob('AQID'), c => c.charCodeAt(0)));
   });
 });

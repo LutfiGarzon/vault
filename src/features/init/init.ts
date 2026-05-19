@@ -8,6 +8,7 @@ import { generateLocalVault } from '../../core/envelope.js';
 import { getGlobalVaultPath } from '../../core/identity.js';
 import { log, Flexoki } from '../tui/components/theme.js';
 import * as p from '@clack/prompts';
+import { writeVaultAtomic } from '../../core/vault-file.js';
 
 /**
  * The business logic for the 'vault init' command.
@@ -44,8 +45,7 @@ export async function initCommand(options: { file?: string; global?: boolean; en
     const payload = await generateLocalVault(plainTextPayload, gmk);
     const globalVaultPath = getGlobalVaultPath(options.env);
     
-    fs.mkdirSync(path.dirname(globalVaultPath), { recursive: true });
-    fs.writeFileSync(globalVaultPath, JSON.stringify(payload, null, 2), 'utf-8');
+    writeVaultAtomic(globalVaultPath, payload);
     
     _sodium.memzero(gmk);
     p.outro(Flexoki.green(`✔ Global vault successfully updated at ${globalVaultPath}`));

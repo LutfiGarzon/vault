@@ -60,7 +60,12 @@ describe('Share Feature', () => {
     await shareCommand();
 
     expect(envelope.decryptLocalVault).toHaveBeenCalledWith(localPayload, gmk);
-    expect(crypto.encryptPayload).toHaveBeenCalledWith('SECRET=shared', 'test-otp');
+    expect(crypto.encryptPayload).toHaveBeenCalledWith(
+      'SECRET=shared',
+      'test-otp',
+      _sodium.crypto_pwhash_OPSLIMIT_SENSITIVE,
+      _sodium.crypto_pwhash_MEMLIMIT_SENSITIVE
+    );
     
     expect(fs.existsSync(sharedPath)).toBe(true);
     const sharedVault = JSON.parse(fs.readFileSync(sharedPath, 'utf-8'));

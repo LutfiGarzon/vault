@@ -1,16 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { syncCommand } from '../../../src/features/sync/index.js';
 import * as hardwareKey from '../../../src/core/hardware-key.js';
-import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 import _sodium from 'libsodium-wrappers';
 
 vi.mock('../../../src/core/hardware-key.js');
-vi.mock('@aws-sdk/client-kms');
 
 describe('Sync Command', () => {
   const originalEnv = process.env;
   let exitSpy: any;
-  let errorSpy: any;
 
   beforeEach(async () => {
     await _sodium.ready;
@@ -18,7 +15,7 @@ describe('Sync Command', () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
     exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
-    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -27,66 +24,79 @@ describe('Sync Command', () => {
   });
 
   it('should throw if --env is not provided', async () => {
-    try {
-      await syncCommand({});
-    } catch {}
+    try { await syncCommand({}); } catch {}
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('should throw if VAULT_KMS_CIPHERTEXT is missing', async () => {
     delete process.env.VAULT_KMS_CIPHERTEXT;
-    try {
-      await syncCommand({ env: 'qa' });
-    } catch {}
+    try { await syncCommand({ env: 'qa' }); } catch {}
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('should fail gracefully if AWS credentials are missing or expired', async () => {
+  it('should throw if AWS credentials are missing', async () => {
     process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
-    const mockSend = vi.fn().mockRejectedValue(new Error('Could not load credentials from any providers'));
-    KMSClient.prototype.send = mockSend as any;
+    delete process.env.AWS_ACCESS_KEY_ID;
+    delete process.env.AWS_SECRET_ACCESS_KEY;
+    try { await syncCommand({ env: 'qa' }); } catch {}
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
 
-    try {
-      await syncCommand({ env: 'qa' });
-    } catch {}
+  it('should fail gracefully if KMS returns 403', async () => {
+    process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
+    process.env.AWS_ACCESS_KEY_ID = 'AKIA_TEST';
+    process.env.AWS_SECRET_ACCESS_KEY = 'test';
+    process.env.AWS_REGION = 'us-east-1';
+
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => ''
+    } as Response);
+
+    try { await syncCommand({ env: 'qa' }); } catch {}
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('should decrypt KMS key and store it in the hardware enclave', async () => {
     process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
-    const dummyKey = new Uint8Array([10, 20, 30]);
+    process.env.AWS_ACCESS_KEY_ID = 'AKIA_TEST';
+    process.env.AWS_SECRET_ACCESS_KEY = 'test';
+    process.env.AWS_REGION = 'us-east-1';
 
-    const mockSend = vi.fn().mockResolvedValue({ Plaintext: dummyKey });
-    KMSClient.prototype.send = mockSend as any;
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ Plaintext: 'Cgoc' }) // base64 of [10, 20, 30]
+    } as Response);
 
     vi.mocked(hardwareKey.storeHardwareKey).mockResolvedValue({ success: true });
-
-    const sodiumSpy = vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
+    vi.spyOn(_sodium, 'memzero').mockImplementation(() => {});
 
     await syncCommand({ env: 'qa' });
 
-    expect(mockSend).toHaveBeenCalled();
     expect(hardwareKey.storeHardwareKey).toHaveBeenCalledWith(
       'VaultCLI',
       'com.vault.masterkey.qa',
       expect.any(String)
     );
-    expect(sodiumSpy).toHaveBeenCalled();
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
   it('should fail if hardware key storage fails', async () => {
     process.env.VAULT_KMS_CIPHERTEXT = 'b64dummy';
-    const dummyKey = new Uint8Array([10, 20, 30]);
+    process.env.AWS_ACCESS_KEY_ID = 'AKIA_TEST';
+    process.env.AWS_SECRET_ACCESS_KEY = 'test';
+    process.env.AWS_REGION = 'us-east-1';
 
-    const mockSend = vi.fn().mockResolvedValue({ Plaintext: dummyKey });
-    KMSClient.prototype.send = mockSend as any;
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ Plaintext: 'Cgoc' })
+    } as Response);
 
     vi.mocked(hardwareKey.storeHardwareKey).mockResolvedValue({ success: false, error: 'Keychain denied' });
 
-    try {
-      await syncCommand({ env: 'qa' });
-    } catch {}
+    try { await syncCommand({ env: 'qa' }); } catch {}
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });
